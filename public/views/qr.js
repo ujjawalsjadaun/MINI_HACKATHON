@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { h } from '../dom.js';
+import { t } from '../i18n.js';
 import { route } from '../router.js';
 import { placePicker } from './place-picker.js';
 import { getMeta } from './shared.js';
@@ -19,7 +20,7 @@ route('/admin/qr', ['admin'], async () => {
 
   const baseInput = h('input', { id: 'base', value: location.origin, inputmode: 'url' });
   const picker = placePicker(m.campus);
-  const roomName = h('input', { id: 'room-name', maxlength: 100, placeholder: 'e.g. CS-101' });
+  const roomName = h('input', { id: 'room-name', maxlength: 100, placeholder: t('e.g. CS-101') });
   const stickers = h('div', { class: 'stickers' });
 
   const tagUrl = (loc, room) => {
@@ -32,9 +33,9 @@ route('/admin/qr', ['admin'], async () => {
   const sticker = (loc, room, onRemove) => {
     const url = tagUrl(loc, room);
     return h('figure', { class: 'sticker' },
-      h('img', { src: `/api/qr?data=${encodeURIComponent(url)}`, alt: `QR code to report an issue at ${loc}${room ? `, ${room}` : ''}`, width: 180, height: 180 }),
-      h('figcaption', {}, h('strong', {}, room || loc), room && h('div', {}, loc), h('div', { class: 'hint' }, 'Scan to report an issue')),
-      onRemove && h('button', { class: 'secondary no-print', type: 'button', onclick: onRemove }, 'Remove'));
+      h('img', { src: `/api/qr?data=${encodeURIComponent(url)}`, alt: room ? t('QR code to report an issue at {place}, {room}', { place: loc, room }) : t('QR code to report an issue at {place}', { place: loc }), width: 180, height: 180 }),
+      h('figcaption', {}, h('strong', {}, room || loc), room && h('div', {}, loc), h('div', { class: 'hint' }, t('Scan to report an issue'))),
+      onRemove && h('button', { class: 'secondary no-print', type: 'button', onclick: onRemove }, t('Remove')));
   };
 
   const draw = () => stickers.replaceChildren(
@@ -45,16 +46,16 @@ route('/admin/qr', ['admin'], async () => {
 
   return h('section', {},
     h('div', { class: 'no-print' },
-      h('h1', {}, 'QR location tags'),
-      h('p', { class: 'muted' }, 'Print one sticker per place, floor or room. Scanning opens the report form with the exact location filled in, which keeps duplicate detection accurate.'),
+      h('h1', {}, t('QR location tags')),
+      h('p', { class: 'muted' }, t('Print one sticker per place, floor or room. Scanning opens the report form with the exact location filled in, which keeps duplicate detection accurate.')),
       h('div', { class: 'card' },
-        h('label', { for: 'base' }, 'Address students will reach this app at'),
+        h('label', { for: 'base' }, t('Address students will reach this app at')),
         baseInput,
-        h('p', { class: 'hint' }, 'Phones cannot open "localhost". Use this computer\'s network address, e.g. http://192.168.1.20:3001, or your deployed URL.'),
-        h('h2', { style: 'margin-top:1rem' }, 'Add a room sticker'),
+        h('p', { class: 'hint' }, t('Phones cannot open "localhost". Use this computer\'s network address, e.g. http://192.168.1.20:3001, or your deployed URL.')),
+        h('h2', { style: 'margin-top:1rem' }, t('Add a room sticker')),
         h('div', { class: 'filters' },
-          h('div', { style: 'flex-basis:100%' }, h('span', { class: 'field-label' }, 'Place and floor'), picker.el),
-          h('div', {}, h('label', { for: 'room-name' }, 'Room / spot (optional)'), roomName)),
+          h('div', { style: 'flex-basis:100%' }, h('span', { class: 'field-label' }, t('Place and floor')), picker.el),
+          h('div', {}, h('label', { for: 'room-name' }, t('Room / spot (optional)')), roomName)),
         h('div', { class: 'row' },
           h('button', {
             class: 'primary', type: 'button',
@@ -67,7 +68,7 @@ route('/admin/qr', ['admin'], async () => {
               roomName.value = '';
               draw();
             },
-          }, 'Add sticker'),
-          h('button', { class: 'secondary', type: 'button', onclick: () => window.print() }, 'Print stickers')))),
+          }, t('Add sticker')),
+          h('button', { class: 'secondary', type: 'button', onclick: () => window.print() }, t('Print stickers'))))),
     stickers);
 });

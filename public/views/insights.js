@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { formatDate, h } from '../dom.js';
+import { t } from '../i18n.js';
 import { route } from '../router.js';
 import { emptyState } from './shared.js';
 
@@ -18,48 +19,48 @@ function bars(title, rows, { name, value, note }) {
         h('div', { class: 'track', role: 'img', 'aria-label': `${name(row)}: ${value(row)}` },
           h('div', { class: 'fill', style: `width:${(value(row) / max) * 100}%` })),
         h('strong', {}, value(row)))))
-      : h('p', { class: 'muted' }, note ?? 'No data yet.'));
+      : h('p', { class: 'muted' }, note ?? t('No data yet.')));
 }
 
 route('/insights', ['admin'], async () => {
   const d = await api('/insights');
-  const t = d.totals;
-  if (!t.issues) return emptyState('No insights yet', 'Insights appear once students start reporting issues.');
+  const totals = d.totals;
+  if (!totals.issues) return emptyState(t('No insights yet'), t('Insights appear once students start reporting issues.'));
 
   return h('section', {},
-    h('h1', {}, 'Campus insights'),
+    h('h1', {}, t('Campus insights')),
     h('div', { class: 'grid' },
-      tile(t.active, 'Active issues', `${t.resolved} resolved of ${t.issues}`),
-      tile(t.reports, 'Student reports', `grouped into ${t.issues} underlying issues`),
-      tile(t.overdue, 'Overdue', 'past their category deadline'),
-      tile(t.duplicates_merged, 'Duplicates merged', 'complaints the team no longer triages twice'),
-      tile(t.reopened_issues, 'Reopened', `claimed fixes that did not hold (${t.reopens} reopening${t.reopens === 1 ? '' : 's'})`),
-      tile(t.avg_resolution_hours == null ? '-' : `${t.avg_resolution_hours}h`, 'Avg. time to resolve', 'across resolved issues')),
+      tile(totals.active, t('Active issues'), t('{resolved} resolved of {total}', { resolved: totals.resolved, total: totals.issues })),
+      tile(totals.reports, t('Student reports'), t('grouped into {n} underlying issues', { n: totals.issues })),
+      tile(totals.overdue, t('Overdue'), t('past their category deadline')),
+      tile(totals.duplicates_merged, t('Duplicates merged'), t('complaints the team no longer triages twice')),
+      tile(totals.reopened_issues, t('Reopened'), t(totals.reopens === 1 ? 'claimed fixes that did not hold ({n} reopening)' : 'claimed fixes that did not hold ({n} reopenings)', { n: totals.reopens })),
+      tile(totals.avg_resolution_hours == null ? '-' : `${totals.avg_resolution_hours}h`, t('Avg. time to resolve'), t('across resolved issues'))),
 
     d.overdue.length > 0 && h('div', { class: 'card' },
-      h('h2', {}, 'Overdue issues'),
-      h('p', { class: 'muted' }, 'Past the deadline for their category, so their priority has been raised.'),
+      h('h2', {}, t('Overdue issues')),
+      h('p', { class: 'muted' }, t('Past the deadline for their category, so their priority has been raised.')),
       h('ul', {}, d.overdue.map((i) => h('li', {},
-        h('a', { href: `#/admin/issue/${i.id}` }, i.title), ` - ${i.location}, overdue by ${i.sla.overdue_hours}h (deadline ${i.sla.hours}h)`)))),
+        h('a', { href: `#/admin/issue/${i.id}` }, i.title), t(' - {place}, overdue by {n}h (deadline {hours}h)', { place: i.location, n: i.sla.overdue_hours, hours: i.sla.hours }))))),
 
     h('div', { class: 'card' },
-      h('h2', {}, 'Recurring problems'),
-      h('p', { class: 'muted' }, `The same kind of fault at the same place ${d.recurring_rule.min}+ times in ${d.recurring_rule.days} days. These point to a root cause, not a one-off repair.`),
+      h('h2', {}, t('Recurring problems')),
+      h('p', { class: 'muted' }, t('The same kind of fault at the same place {min}+ times in {days} days. These point to a root cause, not a one-off repair.', { min: d.recurring_rule.min, days: d.recurring_rule.days })),
       d.recurring.length
-        ? h('ul', {}, d.recurring.map((r) => h('li', {}, h('strong', {}, `${r.label} at ${r.location}`), ` - ${r.occurrences} separate issues in ${d.recurring_rule.days} days, last on ${formatDate(r.last_seen)}`)))
-        : h('p', { class: 'muted' }, 'No recurring problems detected yet.')),
+        ? h('ul', {}, d.recurring.map((r) => h('li', {}, h('strong', {}, t('{label} at {place}', { label: t(r.label), place: r.location })), t(' - {n} separate issues in {days} days, last on {date}', { n: r.occurrences, days: d.recurring_rule.days, date: formatDate(r.last_seen) }))))
+        : h('p', { class: 'muted' }, t('No recurring problems detected yet.'))),
 
     h('div', { class: 'card' },
-      h('h2', {}, `Stuck for more than ${d.stale.after_days} days`),
+      h('h2', {}, t('Stuck for more than {days} days', { days: d.stale.after_days })),
       d.stale.issues.length
         ? h('ul', {}, d.stale.issues.map((i) => h('li', {},
-          h('a', { href: `#/admin/issue/${i.id}` }, i.title), ` - ${i.location}, ${i.status.replace(/_/g, ' ')} since ${formatDate(i.created_at)}`)))
-        : h('p', { class: 'muted' }, 'Nothing is overdue.')),
+          h('a', { href: `#/admin/issue/${i.id}` }, i.title), t(' - {place}, {status} since {date}', { place: i.location, status: t(i.status.replace(/_/g, ' ')), date: formatDate(i.created_at) }))))
+        : h('p', { class: 'muted' }, t('Nothing is overdue.'))),
 
     h('div', { class: 'grid' },
-      bars('Issues by location (hotspots)', d.hotspots, { name: (r) => r.location, value: (r) => r.issues }),
-      bars('Avg. hours to resolve, by category', d.resolution_by_category, { name: (r) => r.label, value: (r) => r.avg_hours, note: 'Appears once issues are resolved.' }),
-      bars('Issues by category', d.by_category, { name: (r) => r.label, value: (r) => r.count }),
-      bars('Active workload by team', d.by_department, { name: (r) => r.department, value: (r) => r.active ?? 0 }),
-      bars('Issues by status', d.by_status, { name: (r) => r.status.replace(/_/g, ' '), value: (r) => r.count })));
+      bars(t('Issues by location (hotspots)'), d.hotspots, { name: (r) => r.location, value: (r) => r.issues }),
+      bars(t('Avg. hours to resolve, by category'), d.resolution_by_category, { name: (r) => t(r.label), value: (r) => r.avg_hours, note: t('Appears once issues are resolved.') }),
+      bars(t('Issues by category'), d.by_category, { name: (r) => t(r.label), value: (r) => r.count }),
+      bars(t('Active workload by team'), d.by_department, { name: (r) => t(r.department), value: (r) => r.active ?? 0 }),
+      bars(t('Issues by status'), d.by_status, { name: (r) => t(r.status.replace(/_/g, ' ')), value: (r) => r.count })));
 });
