@@ -51,3 +51,22 @@ export function updateIssue(db, actor, issueId, body = {}, now = Date.now()) {
       .run(issueId, nextStatus, parts.join(' - '), actor.name, now);
   });
 }
+
+// The team tells reporters it has seen the issue, before any work starts.
+// Admins can acknowledge any issue; staff only their own. The first acknowledgement stands.
+export function acknowledgeIssue(db, actor, issueId, now = Date.now()) {
+  return transaction(db, () => {
+    const issue = db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
+    if (!issue) throw new HttpError(404, 'Issue not found');
+    if (actor.role === 'staff' && issue.assigned_user_id !== actor.id) {
+      throw new HttpError(403, 'This issue is not assigned to you');
+    }
+    if (issue.status === 'resolved') throw new HttpError(409, 'This issue is already resolved');
+    if (issue.acknowledged_at) throw new HttpError(409, `Already acknowledged by ${issue.acknowledged_by}`);
+
+    db.prepare('UPDATE issues SET acknowledged_at = ?, acknowledged_by = ?, updated_at = ? WHERE id = ?')
+      .run(now, actor.name, now, issueId);
+    db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(issueId, issue.status, 'Acknowledged: the team has seen this report', actor.name, now);
+  });
+}

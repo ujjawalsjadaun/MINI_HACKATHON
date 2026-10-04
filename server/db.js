@@ -35,7 +35,9 @@ CREATE TABLE IF NOT EXISTS issues (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   resolved_at INTEGER,
-  reopen_count INTEGER NOT NULL DEFAULT 0
+  reopen_count INTEGER NOT NULL DEFAULT 0,
+  acknowledged_at INTEGER,
+  acknowledged_by TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_issues_match ON issues(category, location, status);
 
@@ -65,7 +67,16 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(SCHEMA);
+  addMissingColumns(db);
   return db;
+}
+
+// Databases created before acknowledgements existed get the new columns on startup.
+function addMissingColumns(db) {
+  const have = new Set(db.prepare('PRAGMA table_info(issues)').all().map((c) => c.name));
+  for (const [name, type] of [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT']]) {
+    if (!have.has(name)) db.exec(`ALTER TABLE issues ADD COLUMN ${name} ${type}`);
+  }
 }
 
 // node:sqlite has no transaction helper; this keeps multi-statement writes atomic.

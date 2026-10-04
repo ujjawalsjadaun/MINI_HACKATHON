@@ -346,3 +346,32 @@ test('meta serves the NIT Arunachal Pradesh campus map and rejects unknown place
   const s = await signup('Meera');
   assert.equal((await report(s, 'Light is broken in the corridor', { location: 'CS Block' })).status, 400);
 });
+
+test('the assigned team or an admin acknowledges an issue once, and students see it on the timeline', async () => {
+  const admin = await adminLogin();
+  const staffId = makeStaff('Wasim', 'IT Services');
+  makeStaff('Xena', 'IT Services');
+  const [wasim, xena] = [await staffLogin('Wasim'), await staffLogin('Xena')];
+  const s = await signup('Yash');
+  const id = (await report(s, 'Projector cable is missing in the seminar hall', { category: 'classroom', location: 'B-IV' })).data.issueId;
+  await call('PATCH', `/api/issues/${id}`, { token: admin, body: { assignee_id: staffId } });
+
+  // Students and unrelated staff cannot acknowledge.
+  assert.equal((await call('POST', `/api/issues/${id}/acknowledge`, { token: s })).status, 403);
+  assert.equal((await call('POST', `/api/issues/${id}/acknowledge`, { token: xena })).status, 403);
+  assert.equal((await call('POST', '/api/issues/99999/acknowledge', { token: admin })).status, 404);
+
+  const ack = await call('POST', `/api/issues/${id}/acknowledge`, { token: wasim });
+  assert.equal(ack.status, 200);
+  assert.equal(ack.data.issue.acknowledged_by, 'Wasim');
+  assert.ok(ack.data.issue.acknowledged_at);
+
+  // The first acknowledgement stands.
+  assert.equal((await call('POST', `/api/issues/${id}/acknowledge`, { token: admin })).status, 409);
+
+  const seen = (await call('GET', `/api/issues/${id}`, { token: s })).data;
+  assert.equal(seen.issue.acknowledged_by, 'Wasim');
+  assert.match(seen.log.at(-1).note, /Acknowledged/);
+  assert.equal(seen.issue.status, 'assigned');
+});
+

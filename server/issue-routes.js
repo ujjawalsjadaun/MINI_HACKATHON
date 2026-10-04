@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import multer from 'multer';
-import { updateIssue } from './admin.js';
+import { acknowledgeIssue, updateIssue } from './admin.js';
 import { authenticate, requireAdmin, requireRole } from './auth.js';
 import { MAX_PHOTO_BYTES } from './config.js';
 import { HttpError, wrap } from './http.js';
@@ -94,6 +94,12 @@ export function issueRoutes(db, router, { uploadDir }) {
   router.get('/staff', auth, requireAdmin, (_req, res) => {
     res.json(db.prepare("SELECT id, name, department FROM users WHERE role = 'staff' ORDER BY department, name").all());
   });
+
+  router.post('/issues/:id/acknowledge', auth, requireRole('admin', 'staff'), wrap((req, res) => {
+    const id = idParam(req);
+    acknowledgeIssue(db, req.user, id);
+    res.json(getIssueDetail(db, id, req.user));
+  }));
 
   router.patch('/issues/:id', auth, requireRole('admin', 'staff'), wrap((req, res) => {
     const id = idParam(req);
