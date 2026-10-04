@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import multer from 'multer';
-import { authenticate } from './auth.js';
+import { updateIssue } from './admin.js';
+import { authenticate, requireAdmin } from './auth.js';
 import { MAX_PHOTO_BYTES } from './config.js';
 import { HttpError, wrap } from './http.js';
 import { addMeToo, getIssueDetail, listIssues, submitReport, suggestSimilar, validateReportInput } from './issues.js';
@@ -69,4 +70,10 @@ export function issueRoutes(db, router, { uploadDir }) {
   }));
 
   router.get('/issues/:id', auth, wrap((req, res) => res.json(getIssueDetail(db, idParam(req), req.user))));
+
+  router.patch('/issues/:id', auth, requireAdmin, wrap((req, res) => {
+    const id = idParam(req);
+    updateIssue(db, req.user, id, req.body);
+    res.json(getIssueDetail(db, id, req.user));
+  }));
 }
