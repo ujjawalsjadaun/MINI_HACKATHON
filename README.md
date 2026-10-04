@@ -54,7 +54,7 @@ The label is critical (60+), high (45+), medium (25+) or low. The SLA clock paus
 
 ## Run it
 
-Requires **Node.js 22.5 or newer** (uses the built-in `node:sqlite`). No database server and no API keys are needed.
+Requires **Node.js 22.13 or newer** (uses the built-in `node:sqlite`). No database server and no API keys are needed.
 
 ```bash
 npm install
@@ -77,6 +77,12 @@ Run the tests with `npm test` (unit tests for matching, priority and SLA rules, 
 The seeded admin password is public in this README. Set your own with `ADMIN_PASSWORD=... npm run seed` before sharing the app with anyone.
 
 Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/campusfix.db`).
+
+### Opening it from another computer or phone
+
+`npm start` prints an `On your network:` address such as `http://192.168.1.20:3000`. Other devices must use that address, never `localhost` (which means their own machine), and must be on the same Wi-Fi. Allow Node.js through the Windows firewall if asked. Some campus or public Wi-Fi blocks device-to-device traffic; a phone hotspot works as a fallback.
+
+On a fresh clone, run `npm install` and `npm run seed` first. Without the seed there are no accounts, and the server says so at startup.
 
 ### QR tags on a phone
 
