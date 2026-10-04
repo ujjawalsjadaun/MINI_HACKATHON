@@ -19,11 +19,13 @@ function literalsInCalls(source) {
   let m;
   while ((m = call.exec(source))) {
     let depth = 1;
+    let inKey = true; // only the first argument is the key; later arguments are parameters
     let i = m.index + m[0].length;
     while (i < source.length && depth > 0) {
       const c = source[i];
       if (c === '(') depth++;
       else if (c === ')') depth--;
+      else if (c === ',' && depth === 1) inKey = false;
       else if (c === "'" || c === '"' || c === '`') {
         let j = i + 1;
         let hasHole = false;
@@ -33,7 +35,7 @@ function literalsInCalls(source) {
           j++;
         }
         const raw = source.slice(i + 1, j);
-        if (!hasHole && raw) found.push(new Function(`return ${c}${raw}${c}`)());
+        if (!hasHole && raw && inKey && depth === 1) found.push(new Function(`return ${c}${raw}${c}`)());
         i = j;
       }
       i++;
@@ -58,6 +60,12 @@ const dynamicKeys = [
   INSTITUTE.status, INSTITUTE.established, INSTITUTE.campus, INSTITUTE.vision, ...INSTITUTE.mission,
   ...INSTITUTE.sources.map((s) => s.label),
   ...['Issues', 'Map', 'Insights', 'QR tags', 'My assignments', 'Report issue', 'My complaints', 'Campus feed', 'Security'], // menu items
+  // Fixed texts the server writes into timelines, matches and suggestions
+  'normal', 'urgent', 'emergency',
+  'Fix confirmed by a reporter', 'Acknowledged: the team has seen this report', 'A new report came in after the fix was claimed',
+  'Another student says the problem is still there', 'Reporter says it is not fixed', 'Unassigned', 'Confirmed via me too',
+  'Confirmed by another student (me too)', 'system', 'reporter',
+  'built-in rules', 'local model', 'No clear match, so it goes to the Estate Office',
 ];
 
 // Every fixed message the server can send. (Messages with a name or number built in stay in English.)

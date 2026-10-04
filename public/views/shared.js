@@ -1,5 +1,6 @@
 import { session } from '../api.js';
 import { badge, formatDate, h } from '../dom.js';
+import { t } from '../i18n.js';
 import { campusMap, issuePins } from './campus-map.js';
 
 let meta;
@@ -8,7 +9,33 @@ export async function getMeta(api) {
   return meta;
 }
 
-export const categoryLabel = (m, key) => m.categories.find((c) => c.key === key)?.label ?? key;
+export const categoryLabel = (m, key) => t(m.categories.find((c) => c.key === key)?.label ?? key);
+
+// The server writes its score breakdown, timeline notes and match explanations in English with numbers and names
+// built in. These helpers recognise each pattern and translate it; anything else is shown as it was written.
+const match = (text, pattern) => pattern.exec(text);
+
+export function priorityReason(reason) {
+  let m;
+  if ((m = match(reason, /^category severity \+(\d+)$/))) return t('category severity +{n}', { n: m[1] });
+  if ((m = match(reason, /^(\d+) reports \+(\d+)$/))) return t('{count} reports +{n}', { count: m[1], n: m[2] });
+  if ((m = match(reason, /^reporter marked it (\w+) \+(\d+)$/))) return t('reporter marked it {level} +{n}', { level: t(m[1]), n: m[2] });
+  if ((m = match(reason, /^safety keywords \+(\d+)$/))) return t('safety keywords +{n}', { n: m[1] });
+  if ((m = match(reason, /^reopened after a claimed fix \+(\d+)$/))) return t('reopened after a claimed fix +{n}', { n: m[1] });
+  if ((m = match(reason, /^past the (\d+)h deadline \+(\d+)$/))) return t('past the {hours}h deadline +{n}', { hours: m[1], n: m[2] });
+  if ((m = match(reason, /^unresolved for days \+(\d+)$/))) return t('unresolved for days +{n}', { n: m[1] });
+  return reason;
+}
+
+export function noteText(note) {
+  let m;
+  if ((m = match(note, /^Reported and routed to (.+)$/))) return t('Reported and routed to {dept}', { dept: t(m[1]) });
+  if ((m = match(note, /^Reopened: ([\s\S]+)$/))) return t('Reopened: {note}', { note: t(m[1]) });
+  if ((m = match(note, /^Assigned to (.+?)(?: - ([\s\S]*))?$/))) return t('Assigned to {name}', { name: m[1] }) + (m[2] ? ` - ${t(m[2])}` : '');
+  if ((m = match(note, /^Unassigned(?: - ([\s\S]*))?$/))) return t('Unassigned') + (m[1] ? ` - ${t(m[1])}` : '');
+  if ((m = match(note, /^Same category and location \((.+)\); (\d+)% wording overlap$/))) return t('Same category and location ({place}); {pct}% wording overlap', { place: m[1], pct: m[2] });
+  return t(note);
+}
 
 export function issueCard(issue, m, { actions } = {}) {
   return h('article', { class: 'card issue' },
@@ -19,15 +46,15 @@ export function issueCard(issue, m, { actions } = {}) {
         badge(issue.priority.label, issue.priority.label),
         badge(issue.status, `status-${issue.status}`),
         issue.status !== 'resolved' && (issue.acknowledged_at
-          ? h('span', { class: 'badge ack', title: `Acknowledged by ${issue.acknowledged_by}` }, 'acknowledged')
-          : h('span', { class: 'badge unack', title: 'The team has not confirmed it has seen this yet' }, 'not yet acknowledged')))),
+          ? h('span', { class: 'badge ack', title: t('Acknowledged by {name}', { name: issue.acknowledged_by }) }, t('acknowledged'))
+          : h('span', { class: 'badge unack', title: t('The team has not confirmed it has seen this yet') }, t('not yet acknowledged'))))),
     h('div', { class: 'meta' },
       h('span', {}, `${issue.location}${issue.detail ? ` - ${issue.detail}` : ''}`),
       h('span', {}, categoryLabel(m, issue.category)),
-      h('span', { class: 'badge count', title: 'Students who reported this problem' }, `${issue.report_count} report${issue.report_count === 1 ? '' : 's'}`),
-      h('span', {}, `Reported ${formatDate(issue.created_at)}`),
-      issue.assigned_to && h('span', {}, `Assigned to ${issue.assigned_to}`),
-      issue.acknowledged_at && h('span', {}, `Acknowledged by ${issue.acknowledged_by}, ${formatDate(issue.acknowledged_at)}`)),
+      h('span', { class: 'badge count', title: t('Students who reported this problem') }, t(issue.report_count === 1 ? '{n} report' : '{n} reports', { n: issue.report_count })),
+      h('span', {}, t('Reported {date}', { date: formatDate(issue.created_at) })),
+      issue.assigned_to && h('span', {}, t('Assigned to {name}', { name: issue.assigned_to })),
+      issue.acknowledged_at && h('span', {}, t('Acknowledged by {name}, {date}', { name: issue.acknowledged_by, date: formatDate(issue.acknowledged_at) }))),
     actions);
 }
 
@@ -35,9 +62,9 @@ export function timeline(log) {
   return h('ol', { class: 'timeline' }, log.map((entry) =>
     h('li', {},
       h('time', {}, formatDate(entry.created_at)),
-      h('strong', {}, entry.status.replace(/_/g, ' ')),
-      entry.note && h('div', {}, entry.note),
-      h('div', { class: 'muted' }, `by ${entry.actor}`))));
+      h('strong', {}, t(entry.status.replace(/_/g, ' '))),
+      entry.note && h('div', {}, noteText(entry.note)),
+      h('div', { class: 'muted' }, t('by {actor}', { actor: t(entry.actor) })))));
 }
 
 export function emptyState(title, text, link) {
@@ -47,11 +74,11 @@ export function emptyState(title, text, link) {
 
 // Where the problem is, on the schematic campus map.
 export function whereCard(m, issue) {
-  const map = campusMap(m, { label: `Map showing ${issue.location}` });
+  const map = campusMap(m, { label: t('Map showing {place}', { place: issue.location }) });
   map.setPlace(issue.location);
   map.setPins(issuePins(m, [issue]));
   return h('div', { class: 'card' },
-    h('h2', {}, 'Where'),
-    h('p', { class: 'muted' }, `${issue.location}${issue.detail ? `, ${issue.detail}` : ''}. ${issue.pin_x != null ? 'The reporter marked the exact spot.' : 'The exact spot was not marked.'}`),
+    h('h2', {}, t('Where')),
+    h('p', { class: 'muted' }, `${issue.location}${issue.detail ? `, ${issue.detail}` : ''}. ${t(issue.pin_x != null ? 'The reporter marked the exact spot.' : 'The exact spot was not marked.')}`),
     h('div', { class: 'map-wrap' }, map.el));
 }

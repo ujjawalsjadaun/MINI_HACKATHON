@@ -1,3 +1,5 @@
+import { t } from '../i18n.js';
+
 const NS = 'http://www.w3.org/2000/svg';
 
 // Fills for each campus area, matching the colours of the campus chart.
@@ -43,7 +45,7 @@ export function issuePins(meta, issues, hrefOf) {
     }
     return {
       x, y, approx: !exact, href: hrefOf?.(issue), color: PRIORITY_COLOR[issue.priority.label],
-      title: `${issue.title} (${issue.priority.label})${exact ? '' : `, exact spot not marked, somewhere in ${issue.location}`}`,
+      title: `${issue.title} (${t(issue.priority.label)})${exact ? '' : t(', exact spot not marked, somewhere in {place}', { place: issue.location })}`,
     };
   });
 }
@@ -61,7 +63,7 @@ const PIN_PATH = 'M0 0C-6-10-14-17-14-27a14 14 0 1 1 28 0C14-17 6-10 0 0Z';
 
 // Schematic campus map (a drawing, not a survey, and not to scale). Interactive mode lets a student tap a
 // building to pick the place and tap anywhere to drop a pin; read-only mode shows pins for existing issues.
-export function campusMap(meta, { interactive = false, onPick, label = 'Schematic campus map, not to scale' } = {}) {
+export function campusMap(meta, { interactive = false, onPick, label = t('Schematic campus map, not to scale') } = {}) {
   const { width: W, height: H } = meta.mapSize;
   let selected = '';
   let pin = null;
@@ -91,10 +93,10 @@ export function campusMap(meta, { interactive = false, onPick, label = 'Schemati
       // Roads
       svg('rect', { x: 20, y: 330, width: 950, height: 30, rx: 8, fill: '#c9cdd3' }),
       svg('rect', { x: 606, y: 40, width: 26, height: 290, fill: '#c9cdd3' }),
-      svg('text', { x: 500, y: 352, class: 'map-road', 'text-anchor': 'middle' }, 'Campus road'),
-      ...zone(20, 40, 580, 280, 'Academic area'),
-      ...zone(640, 40, 330, 280, 'Hostels'),
-      ...zone(20, 370, 950, 240, 'Residences and facilities'),
+      svg('text', { x: 500, y: 352, class: 'map-road', 'text-anchor': 'middle' }, t('Campus road')),
+      ...zone(20, 40, 580, 280, t('Academic area')),
+      ...zone(640, 40, 330, 280, t('Hostels')),
+      ...zone(20, 370, 950, 240, t('Residences and facilities')),
       ...places.map((p) => {
         const { x, y, w, h } = p.map;
         const lines = nameLines(p.name);
@@ -105,7 +107,7 @@ export function campusMap(meta, { interactive = false, onPick, label = 'Schemati
           class: `map-building${on ? ' on' : ''}`,
           role: interactive ? 'button' : null,
           tabindex: interactive ? 0 : null,
-          'aria-label': interactive ? `${p.name}${on ? ', selected' : ''}` : null,
+          'aria-label': interactive ? `${p.name}${on ? t(', selected') : ''}` : null,
           'aria-pressed': interactive ? String(on) : null,
           onclick: interactive ? (e) => { e.stopPropagation(); pick(p, x + w / 2, y + h / 2); } : null,
           onkeydown: interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(p, x + w / 2, y + h / 2); } } : null,
@@ -115,7 +117,7 @@ export function campusMap(meta, { interactive = false, onPick, label = 'Schemati
           lines.map((line, i) => svg('tspan', { x: x + w / 2, y: y + h / 2 + size * 0.35 + (i - (lines.length - 1) / 2) * size * 1.15 }, line))));
       }),
       ...pins.map((q) => pinGraphic(q.x * W, q.y * H, q.color ?? '#b3261e', q.title, q.href, q.approx)),
-      pin && pinGraphic(pin.x * W, pin.y * H, '#12306b', 'Your pin'),
+      pin && pinGraphic(pin.x * W, pin.y * H, '#12306b', t('Your pin')),
     ].flat().filter(Boolean));
   }
 
