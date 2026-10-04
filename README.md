@@ -78,6 +78,14 @@ The seeded admin password is public in this README. Set your own with `ADMIN_PAS
 
 Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/campusfix.db`).
 
+### Forgot password
+
+There is no email service, so resets go through the admin office, the way a campus would do it in person:
+
+1. The user opens **Forgot your password?** on the sign-in page and enters their email. The reply is always the same, so it cannot be used to find out who has an account.
+2. An admin opens **Reset requests**, checks who is asking (for example their college ID) and taps **Generate code**. The 8-character code is shown once, stored only as a hash, works once and expires after 30 minutes.
+3. The user enters email, code and a new password. Five wrong codes lock that code, and a successful reset signs the user out on every device. Admin accounts are not reset this way; re-run the seed with `ADMIN_PASSWORD` on a fresh database instead.
+
 ### Smart suggestions on the report form
 
 **Smart suggest** reads the student's rough description and proposes a category, a tidier wording and a safety warning. Nothing is applied until the student taps **Use this**. It needs no account, no API key and no internet.
@@ -145,12 +153,16 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - Duplicate matching is rule-based, not semantic, and does not compare photos. It can miss duplicates described in very different words. Admins cannot yet merge issues by hand.
 - "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
-- Staff and admin accounts are created by the seed script; there is no account-management UI, email verification or password reset.
+- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password resets work, but the code is handed over by the admin office instead of being emailed.
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
 
 Embedding-based text and photo matching, manual merge for admins, notifications, an auto-close timer for unanswered fixes, anonymous reporting for sensitive categories, and account management.
+
+## Information from the official site
+
+The sign-in page shows facts about the host institute that were copied from [nitap.ac.in](https://www.nitap.ac.in) (status, establishment, address, vision and mission) with their source pages and retrieval date, kept in `server/institute.js`. The **Latest notices** list is fetched live from the site's home page, cached for an hour and simply hidden if the site cannot be reached. The campus map's hostel names (Lohit-I, Lohit-II, Subansiri, Papum) follow the institute's hostel admission notice. None of this makes CampusFix an official service.
 
 ## Credits
 
