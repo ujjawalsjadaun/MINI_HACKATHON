@@ -86,6 +86,7 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(SCHEMA);
   addMissingColumns(db);
+  moveDemoAccounts(db);
   return db;
 }
 
@@ -103,6 +104,12 @@ function addMissingColumns(db) {
       if (!have.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
     }
   }
+}
+
+// Sign-in now needs an @nitap.ac.in address. Demo accounts seeded before that rule used @campusfix.local;
+// move them across so an existing database keeps working (asha@campusfix.local becomes asha@nitap.ac.in).
+function moveDemoAccounts(db) {
+  db.exec("UPDATE OR IGNORE users SET email = replace(email, '@campusfix.local', '@nitap.ac.in') WHERE email LIKE '%@campusfix.local'");
 }
 
 // node:sqlite has no transaction helper; this keeps multi-statement writes atomic.

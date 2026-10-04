@@ -1,8 +1,18 @@
 import crypto from 'node:crypto';
-import { SECURITY_QUESTIONS, SESSION_TTL_MS } from './config.js';
+import { EMAIL_DOMAIN, SECURITY_QUESTIONS, SESSION_TTL_MS } from './config.js';
 import { HttpError, requireString, wrap } from './http.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// An institute address: something before the @ and exactly @nitap.ac.in after it (any letter case).
+export const isInstituteEmail = (email) => EMAIL_RE.test(email) && email.toLowerCase().endsWith(`@${EMAIL_DOMAIN}`);
+
+// Reads the email field, lower-cased, and rejects anything that is not an institute address.
+export function requireInstituteEmail(value) {
+  const email = requireString(value, 'Email', { max: 120 }).toLowerCase();
+  if (!isInstituteEmail(email)) throw new HttpError(400, 'Use your NIT Arunachal Pradesh email address (ending in @nitap.ac.in)');
+  return email;
+}
 
 export function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -95,9 +105,8 @@ export function createLoginThrottle(now = () => Date.now(), maxFailures = MAX_FA
 export function authRoutes(db, router, throttle = createLoginThrottle()) {
   router.post('/auth/register', wrap((req, res) => {
     const name = requireString(req.body.name, 'Name', { min: 2, max: 80 });
-    const email = requireString(req.body.email, 'Email', { max: 120 }).toLowerCase();
+    const email = requireInstituteEmail(req.body.email);
     const password = requireString(req.body.password, 'Password', { min: 6, max: 100 });
-    if (!EMAIL_RE.test(email)) throw new HttpError(400, 'Enter a valid email address');
     if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) {
       throw new HttpError(409, 'An account with this email already exists');
     }
@@ -107,7 +116,7 @@ export function authRoutes(db, router, throttle = createLoginThrottle()) {
   }));
 
   router.post('/auth/login', wrap((req, res) => {
-    const email = requireString(req.body.email, 'Email', { max: 120 }).toLowerCase();
+    const email = requireInstituteEmail(req.body.email);
     const password = requireString(req.body.password, 'Password', { max: 100 });
     const key = `${req.ip}|${email}`;
     if (throttle.isLocked(key)) throw new HttpError(429, 'Too many failed attempts. Try again in a few minutes.');
