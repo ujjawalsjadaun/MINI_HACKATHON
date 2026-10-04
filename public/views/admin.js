@@ -48,7 +48,11 @@ route('/admin/issue/:id', ['admin'], async ({ id }) => {
   const [m, detail] = await Promise.all([getMeta(api), api(`/issues/${id}`)]);
   const { issue, reports, log } = detail;
 
-  const status = h('select', { id: 'status' }, m.statuses.map((s) => option(s, s.replace(/_/g, ' '), issue.status === s)));
+  // Teams cannot close an issue themselves: only a reporter's confirmation resolves it.
+  const statusText = { awaiting_confirmation: 'Fixed - ask reporters to confirm' };
+  const status = h('select', { id: 'status' }, m.statuses
+    .filter((s) => s !== 'resolved' || issue.status === 'resolved')
+    .map((s) => option(s, statusText[s] ?? s.replace(/_/g, ' '), issue.status === s)));
   const assignee = h('input', { id: 'assignee', maxlength: 80, value: issue.assigned_to ?? '', placeholder: `e.g. a technician from ${issue.department}` });
   const note = h('textarea', { id: 'note', maxlength: 300, placeholder: 'Visible to students on the progress timeline' });
   const error = h('p', { class: 'error', role: 'alert' });
@@ -94,5 +98,6 @@ route('/admin/issue/:id', ['admin'], async ({ id }) => {
         h('p', {}, r.description),
         r.match_reason && h('p', { class: 'hint' }, `Auto-grouped: ${r.match_reason}`),
         r.photo && h('a', { href: r.photo, target: '_blank', rel: 'noopener' }, h('img', { class: 'photo', src: r.photo, alt: `Photo from ${r.reporter}` }))))),
+    issue.reopen_count > 0 && h('p', { class: 'hint' }, `Reopened ${issue.reopen_count} time${issue.reopen_count === 1 ? '' : 's'} after a claimed fix.`),
     issue.status === 'resolved' && badge('resolved', 'status-resolved'));
 });

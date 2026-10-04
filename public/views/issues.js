@@ -3,6 +3,28 @@ import { badge, formatDate, h, toast } from '../dom.js';
 import { go, route } from '../router.js';
 import { emptyState, getMeta, issueCard, timeline } from './shared.js';
 
+function confirmPanel(id) {
+  const note = h('textarea', { id: 'reopen-note', maxlength: 300, placeholder: 'If it is not fixed, tell us what is still wrong (optional)' });
+  const act = (path, body, message) => async (e) => {
+    e.target.disabled = true;
+    try {
+      await api(`/issues/${id}/${path}`, { method: 'POST', body });
+      toast(message);
+      go(`/issue/${id}`);
+    } catch (err) {
+      toast(err.message, 'error');
+      e.target.disabled = false;
+    }
+  };
+  return h('div', { class: 'notice' },
+    h('strong', {}, 'The team says this is fixed. Is it?'),
+    h('p', { class: 'hint' }, 'The issue only closes when a reporter confirms the fix actually happened.'),
+    h('label', { for: 'reopen-note' }, 'Note'), note,
+    h('div', { class: 'row', style: 'margin-top:.75rem' },
+      h('button', { class: 'primary', type: 'button', onclick: act('confirm', undefined, 'Thanks. Marked as resolved.') }, 'Yes, it is fixed'),
+      h('button', { class: 'secondary', type: 'button', onclick: (e) => act('reopen', { note: note.value }, 'Reopened. The team has been notified.')(e) }, 'No, reopen it')));
+}
+
 route('/mine', ['student'], async () => {
   const [m, issues] = await Promise.all([getMeta(api), api('/issues?mine=1')]);
   return h('section', {},
@@ -62,5 +84,6 @@ route('/issue/:id', ['student'], async ({ id }) => {
         r.match_reason && h('p', { class: 'hint' }, `Grouped with an existing issue: ${r.match_reason}`),
         r.photo && h('img', { class: 'photo', src: r.photo, alt: 'Photo you attached to this report' }),
         h('p', { class: 'hint' }, formatDate(r.created_at))))),
+    detail.can_confirm && confirmPanel(issue.id),
     issue.status === 'resolved' && h('div', { class: 'notice ok' }, badge('resolved', 'status-resolved'), ' This issue has been resolved.'));
 });

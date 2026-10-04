@@ -125,3 +125,5 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   main { max-width: none; padding: 0; }
   .stickers { grid-template-columns: repeat(3, 1fr); }
 }
+
+.badge.status-awaiting_confirmation { color: var(--brand); }
