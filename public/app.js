@@ -23,12 +23,13 @@ function renderNav() {
   const links = user ? NAV[user.role] : [];
   // Highlight the most specific matching link only (/admin/qr should not also light up /admin).
   const active = links.map(([path]) => path).filter((p) => current === p || current.startsWith(`${p}/`)).sort((a, b) => b.length - a.length)[0];
-  nav.replaceChildren(
+  // replaceChildren turns null into the text "null", so only real nodes are passed.
+  nav.replaceChildren(...[
     ...links.map(([path, text]) =>
       h('a', { href: `#${path}`, 'aria-current': path === active ? 'page' : null }, text)),
     user && h('span', { class: 'who' }, `${user.name} (${user.role})`),
     user && h('button', { type: 'button', onclick: signOut }, 'Sign out'),
-  );
+  ].filter(Boolean));
 }
 
 async function signOut() {
