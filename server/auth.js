@@ -9,7 +9,7 @@ export function hashPassword(password, salt = crypto.randomBytes(16).toString('h
   return { hash, salt };
 }
 
-function verifyPassword(password, salt, expectedHex) {
+export function verifyPassword(password, salt, expectedHex) {
   const actual = crypto.scryptSync(password, salt, 64);
   const expected = Buffer.from(expectedHex, 'hex');
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);

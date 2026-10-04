@@ -396,3 +396,42 @@ test('suggestions work without any key, are student-only and rate limited', asyn
   for (let i = 0; i < 20; i++) last = await call('POST', '/api/ai/suggest', { token: student, body: { description: 'ceiling fan not working in the lab' } });
   assert.equal(last.status, 429);
 });
+
+test('password reset: the admin office issues a one-time code, wrong codes lock, sessions end', async () => {
+  const admin = await adminLogin();
+  const student = await signup('Reena');
+  const email = 'reena@test.edu';
+  const asked = () => call('POST', '/api/auth/forgot', { body: { email } });
+
+  // Same answer for real and unknown accounts, and nothing is created for an unknown one.
+  assert.deepEqual((await asked()).data, { ok: true });
+  assert.deepEqual((await call('POST', '/api/auth/forgot', { body: { email: 'nobody@test.edu' } })).data, { ok: true });
+  await asked(); // a repeat does not create a second pending request
+  const pending = (await call('GET', '/api/admin/resets', { token: admin })).data.filter((r) => r.email === email);
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].code_active, 0);
+  assert.equal((await call('GET', '/api/admin/resets', { token: student })).status, 403);
+  assert.equal((await call('POST', `/api/admin/resets/${pending[0].id}/code`, { token: student })).status, 403);
+
+  // Without a code nothing can be reset.
+  const attempt = (code, password = 'brandnew1') => call('POST', '/api/auth/reset', { body: { email, code, password } });
+  assert.equal((await attempt('ABCDEFGH')).status, 400);
+
+  const { code } = (await call('POST', `/api/admin/resets/${pending[0].id}/code`, { token: admin })).data;
+  assert.match(code, /^[A-HJKMNP-Z2-9]{8}$/);
+
+  // Wrong codes are counted; after 5 even the right one is refused until a new code is issued.
+  for (let i = 0; i < 5; i++) assert.equal((await attempt('WRONGCOD')).status, 400);
+  assert.equal((await attempt(code)).status, 400);
+  const fresh = (await call('POST', `/api/admin/resets/${pending[0].id}/code`, { token: admin })).data.code;
+
+  assert.equal((await attempt(fresh, 'short')).status, 400); // new password still validated
+  assert.equal((await attempt(fresh.toLowerCase().replace(/^(....)/, '$1-'))).status, 200); // case and dash tolerant
+  assert.equal((await attempt(fresh)).status, 400); // single use
+
+  // The old password and the old session are gone; the new password works.
+  assert.equal((await call('GET', '/api/me', { token: student })).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'secret123' } })).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'brandnew1' } })).status, 200);
+  assert.equal((await call('GET', '/api/admin/resets', { token: admin })).data.some((r) => r.email === email), false);
+});

@@ -52,6 +52,18 @@ CREATE TABLE IF NOT EXISTS reports (
   UNIQUE (issue_id, user_id)
 );
 
+-- Password resets are handed out by the admin office: a request, then a one-time code (stored hashed).
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  requested_at INTEGER NOT NULL,
+  code_hash TEXT,
+  salt TEXT,
+  expires_at INTEGER,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  used_at INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS status_log (
   id INTEGER PRIMARY KEY,
   issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,

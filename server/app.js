@@ -7,6 +7,7 @@ import { buildInsights } from './insights.js';
 import { CAMPUS, CATEGORIES, LOCATIONS, STATUSES } from './config.js';
 import { HttpError } from './http.js';
 import { issueRoutes } from './issue-routes.js';
+import { passwordResetRoutes } from './password-reset.js';
 import { qrRoutes } from './qr.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -37,6 +38,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
     });
   });
   authRoutes(db, api);
+  passwordResetRoutes(db, api);
   qrRoutes(api);
   aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });
