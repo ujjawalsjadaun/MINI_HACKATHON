@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { aiRoutes, createAssistant } from './ai.js';
 import { authenticate, authRoutes, requireAdmin } from './auth.js';
 import { buildInsights } from './insights.js';
 import { CAMPUS, CATEGORIES, LOCATIONS, STATUSES } from './config.js';
@@ -10,7 +11,7 @@ import { qrRoutes } from './qr.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export function createApp(db, { uploadDir = path.join(root, 'uploads') } = {}) {
+export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistant = createAssistant() } = {}) {
   const app = express();
   const api = express.Router();
   app.disable('x-powered-by');
@@ -37,6 +38,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads') } = {}) {
   });
   authRoutes(db, api);
   qrRoutes(api);
+  aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });
   api.get('/insights', authenticate(db), requireAdmin, (_req, res) => res.json(buildInsights(db)));
 
