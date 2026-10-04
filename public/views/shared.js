@@ -14,6 +14,7 @@ export function issueCard(issue, m, { actions } = {}) {
     h('div', { class: 'row between' },
       h('h3', {}, h('a', { href: `#/${session.user.role === 'admin' ? 'admin/' : ''}issue/${issue.id}` }, issue.title)),
       h('div', { class: 'row' },
+        issue.sla.overdue && badge('overdue', 'critical'),
         badge(issue.priority.label, issue.priority.label),
         badge(issue.status, `status-${issue.status}`))),
     h('div', { class: 'meta' },

@@ -39,7 +39,7 @@ route('/admin', ['admin'], async () => {
         ...m.locations.map((l) => option(l, l, filters.location === l))])),
     issues.length
       ? issues.map((issue) => issueCard(issue, m, {
-        actions: h('p', { class: 'hint' }, `Routed to ${issue.department}. Priority ${issue.priority.score}: ${issue.priority.reasons.join(', ')}.`),
+        actions: h('p', { class: 'hint' }, `Routed to ${issue.department}. Priority ${issue.priority.score}: ${issue.priority.reasons.join(', ')}.${issue.sla.overdue ? ` Overdue by ${issue.sla.overdue_hours}h (deadline ${issue.sla.hours}h).` : ''}`),
       }))
       : emptyState('No issues match', 'Try a different filter.'));
 });
@@ -87,6 +87,9 @@ route('/admin/issue/:id', ['admin'], async ({ id }) => {
     h('div', { class: 'card' },
       h('h2', {}, 'Why this priority'),
       h('p', {}, `Score ${issue.priority.score}: ${issue.priority.reasons.join(', ')}.`),
+      h('p', { class: issue.sla.overdue ? 'error' : 'muted' }, issue.sla.overdue
+        ? `Overdue by ${issue.sla.overdue_hours} hours (deadline for this category: ${issue.sla.hours}h).`
+        : `Deadline for this category: ${issue.sla.hours}h from the report.`),
       h('p', { class: 'muted' }, `${categoryLabel(m, issue.category)} issues are routed to ${issue.department}.`)),
     h('div', { class: 'grid' },
       h('div', { class: 'card' }, h('h2', {}, 'Update'), form),

@@ -2,7 +2,7 @@ import { ACTIVE_STATUSES, CATEGORIES, LOCATIONS } from './config.js';
 import { transaction } from './db.js';
 import { MATCH_THRESHOLD, explainMatch, findDuplicate, normalizeRoom, sameRoomOrUnknown, similarity, tokenize } from './dedupe.js';
 import { HttpError, requireString } from './http.js';
-import { priorityOf } from './priority.js';
+import { priorityOf, slaOf } from './priority.js';
 
 const ISSUE_SELECT = `
   SELECT i.*, (SELECT COUNT(*) FROM reports r WHERE r.issue_id = i.id) AS report_count
@@ -11,6 +11,7 @@ const ISSUE_SELECT = `
 function withPriority(row, now = Date.now()) {
   return {
     ...row,
+    sla: slaOf({ category: row.category, createdAt: row.created_at, status: row.status }, now),
     priority: priorityOf({
       category: row.category,
       description: row.description,

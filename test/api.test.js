@@ -255,3 +255,20 @@ test('only a reporter can confirm or reopen, and new evidence reopens automatica
   assert.equal((await detail()).issue.status, 'resolved');
   assert.equal((await call('POST', `/api/issues/${id}/confirm`, { token: p })).status, 409);
 });
+
+test('overdue issues are flagged on the list and counted in insights', async () => {
+  const s = await signup('Sana');
+  const admin = await adminLogin();
+  const id = (await report(s, 'Water leaking from a tap in the washroom', { category: 'water', location: 'Mess / Canteen' })).data.issueId;
+  const fresh = (await call('GET', `/api/issues/${id}`, { token: s })).data.issue;
+  assert.equal(fresh.sla.overdue, false);
+
+  db.prepare('UPDATE issues SET created_at = ? WHERE id = ?').run(Date.now() - 30 * 3_600_000, id);
+  const late = (await call('GET', `/api/issues/${id}`, { token: s })).data.issue;
+  assert.equal(late.sla.overdue, true);
+  assert.ok(late.priority.score >= fresh.priority.score + 20);
+
+  const { data } = await call('GET', '/api/insights', { token: admin });
+  assert.ok(data.totals.overdue >= 1);
+  assert.ok(data.overdue.some((i) => i.id === id));
+});

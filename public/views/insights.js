@@ -31,8 +31,15 @@ route('/insights', ['admin'], async () => {
     h('div', { class: 'grid' },
       tile(t.active, 'Active issues', `${t.resolved} resolved of ${t.issues}`),
       tile(t.reports, 'Student reports', `grouped into ${t.issues} underlying issues`),
+      tile(t.overdue, 'Overdue', 'past their category deadline'),
       tile(t.duplicates_merged, 'Duplicates merged', 'complaints the team no longer triages twice'),
       tile(t.avg_resolution_hours == null ? '-' : `${t.avg_resolution_hours}h`, 'Avg. time to resolve', 'across resolved issues')),
+
+    d.overdue.length > 0 && h('div', { class: 'card' },
+      h('h2', {}, 'Overdue issues'),
+      h('p', { class: 'muted' }, 'Past the deadline for their category, so their priority has been raised.'),
+      h('ul', {}, d.overdue.map((i) => h('li', {},
+        h('a', { href: `#/admin/issue/${i.id}` }, i.title), ` - ${i.location}, overdue by ${i.sla.overdue_hours}h (deadline ${i.sla.hours}h)`)))),
 
     h('div', { class: 'card' },
       h('h2', {}, 'Recurring problems'),

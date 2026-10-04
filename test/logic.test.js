@@ -61,3 +61,25 @@ test('a reopened issue ranks higher than one that was never reopened', () => {
   assert.ok(reopened.score > priorityOf(base).score);
   assert.ok(reopened.reasons.some((r) => /reopened/.test(r)));
 });
+
+test('SLA: overdue after the category deadline, paused while awaiting confirmation, never when resolved', async () => {
+  const { slaOf } = await import('../server/priority.js');
+  const now = Date.now();
+  const hoursAgo = (h) => now - h * 3_600_000;
+  assert.equal(slaOf({ category: 'water', createdAt: hoursAgo(23), status: 'open' }, now).overdue, false);
+  const late = slaOf({ category: 'water', createdAt: hoursAgo(30), status: 'open' }, now);
+  assert.equal(late.overdue, true);
+  assert.equal(late.overdue_hours, 6);
+  assert.equal(slaOf({ category: 'water', createdAt: hoursAgo(30), status: 'awaiting_confirmation' }, now).overdue, false);
+  assert.equal(slaOf({ category: 'water', createdAt: hoursAgo(30), status: 'resolved' }, now).overdue, false);
+  assert.equal(slaOf({ category: 'furniture', createdAt: hoursAgo(100), status: 'open' }, now).overdue, false);
+});
+
+test('an overdue issue outranks the same issue inside its deadline', () => {
+  const now = Date.now();
+  const base = { category: 'water', description: 'tap dripping', reportCount: 1, status: 'open' };
+  const fresh = priorityOf({ ...base, createdAt: now - 3_600_000 }, now);
+  const late = priorityOf({ ...base, createdAt: now - 30 * 3_600_000 }, now);
+  assert.ok(late.score >= fresh.score + 20);
+  assert.ok(late.reasons.some((r) => /deadline/.test(r)));
+});
