@@ -1,0 +1,25 @@
+{
+  "_comment": "Copy this file to private/emergency-contacts.json (git-ignored) and replace the placeholders with your institute's real directory. All names and numbers below are fake.",
+  "groups": [
+    {
+      "group": "Hostel contacts",
+      "entries": [
+        { "role": "Hostel In-charge", "name": "Example Person", "phones": ["0000000000"], "tags": ["hostel"] }
+      ]
+    },
+    {
+      "group": "Medical unit services",
+      "entries": [
+        { "role": "Doctor", "name": "Example Doctor", "phones": ["0000000000"], "tags": ["medical", "emergency"] },
+        { "role": "Ambulance driver", "name": "Example Driver", "phones": ["0000000000", "1111111111"], "tags": ["medical", "ambulance", "emergency", "night"] }
+      ]
+    },
+    {
+      "group": "Security, engineering and transport",
+      "entries": [
+        { "role": "Security In-Charge", "name": "Example Person", "phones": ["0000000000"], "tags": ["security", "emergency", "night"] },
+        { "role": "Engineering Cell", "name": "Example Engineer", "phones": ["0000000000"], "tags": ["engineering"] }
+      ]
+    }
+  ]
+}

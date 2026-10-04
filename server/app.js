@@ -6,6 +6,7 @@ import { authenticate, authRoutes, requireAdmin } from './auth.js';
 import { buildInsights } from './insights.js';
 import { CAMPUS, CATEGORIES, LOCATIONS, MAP_SIZE, SECURITY_QUESTIONS, STATUSES, URGENCIES } from './config.js';
 import { HttpError, wrap } from './http.js';
+import { emergencyRoutes } from './emergency.js';
 import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
 import { securityQuestionRoutes } from './security-question.js';
@@ -13,7 +14,7 @@ import { qrRoutes } from './qr.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistant = createAssistant() } = {}) {
+export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistant = createAssistant(), emergencyFile = process.env.EMERGENCY_FILE || path.join(root, 'private', 'emergency-contacts.json') } = {}) {
   const app = express();
   const api = express.Router();
   app.disable('x-powered-by');
@@ -46,6 +47,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
   authRoutes(db, api);
   securityQuestionRoutes(db, api);
   qrRoutes(api);
+  emergencyRoutes(db, api, emergencyFile);
   aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });
   api.get('/insights', authenticate(db), requireAdmin, (_req, res) => res.json(buildInsights(db)));

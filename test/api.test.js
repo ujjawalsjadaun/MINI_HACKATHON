@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createApp } from '../server/app.js';
 import { createUser } from '../server/auth.js';
+import { loadEmergencyContacts } from '../server/emergency.js';
 import { SECURITY_QUESTIONS } from '../server/config.js';
 import { openDb } from '../server/db.js';
 
@@ -14,7 +15,7 @@ const db = openDb(':memory:');
 before(async () => {
   uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'campusfix-'));
   createUser(db, { name: 'Admin', email: 'admin@test.edu', password: 'adminpass', role: 'admin' });
-  server = createApp(db, { uploadDir }).listen(0);
+  server = createApp(db, { uploadDir, emergencyFile: path.join(uploadDir, 'no-such-file.json') }).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://localhost:${server.address().port}`;
 });
@@ -589,3 +590,38 @@ test('students rate the fix once an issue is resolved; each role sees only what 
   assert.equal((await call('GET', `/api/issues/${id}`, { token: outsider })).data.can_give_feedback, false);
 });
 
+test('the emergency directory comes from a private file, only for signed-in users, and is sanitised', async () => {
+  const student = await signup('Emma');
+  assert.equal((await call('GET', '/api/emergency')).status, 401);
+
+  // With no private file only the public numbers are available.
+  const bare = (await call('GET', '/api/emergency', { token: student })).data;
+  assert.equal(bare.configured, false);
+  assert.ok(bare.groups[0].entries.some((e) => e.phones.includes('112')));
+  assert.ok(!JSON.stringify(bare).includes('Example'));
+
+  // A private file adds groups; malformed entries and anything that is not a phone number are dropped.
+  const file = path.join(uploadDir, 'contacts.json');
+  fs.writeFileSync(file, JSON.stringify({
+    groups: [
+      { group: 'Medical', entries: [
+        { role: 'Doctor', name: 'Example Doctor', phones: ['9000000001', 'javascript:alert(1)', '12', 'call me'], tags: ['Medical', 5] },
+        { role: '', name: '', phones: ['9000000002'] },
+      ] },
+      { group: '', entries: [{ role: 'No heading', phones: ['9000000003'] }] },
+      'not a group',
+    ],
+  }));
+  const loaded = loadEmergencyContacts(file);
+  assert.equal(loaded.configured, true);
+  const medical = loaded.groups.find((g) => g.group === 'Medical');
+  assert.equal(medical.entries.length, 1);
+  assert.deepEqual(medical.entries[0].phones, ['9000000001']);
+  assert.deepEqual(medical.entries[0].tags, ['medical']);
+  assert.ok(!loaded.groups.some((g) => g.entries.some((e) => e.role === 'No heading')));
+
+  // A broken file never takes the page down.
+  fs.writeFileSync(file, '{ not json');
+  assert.equal(loadEmergencyContacts(file).configured, false);
+  assert.equal(loadEmergencyContacts(path.join(uploadDir, 'missing.json')).configured, false);
+});
