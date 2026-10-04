@@ -1,0 +1,30 @@
+import { session } from './api.js';
+
+// Route table: pattern -> { roles allowed, render(params) returning a DOM node }.
+// Kept separate from app.js so views can register themselves without import cycles.
+export const routes = [];
+
+export function route(pattern, roles, render) {
+  routes.push({ pattern, roles, render });
+}
+
+export function go(path) {
+  if (location.hash === `#${path}`) window.dispatchEvent(new Event('hashchange'));
+  else location.hash = path;
+}
+
+export const homeFor = (user) => (user.role === 'admin' ? '/admin' : '/report');
+
+export function startSession({ token, user }) {
+  session.token = token;
+  session.user = user;
+  go(homeFor(user));
+}
+
+export function matchRoute(path) {
+  for (const r of routes) {
+    const m = path.match(new RegExp(`^${r.pattern.replace(/:(\w+)/g, '(?<$1>[^/]+)')}$`));
+    if (m) return { route: r, params: m.groups ?? {} };
+  }
+  return null;
+}
