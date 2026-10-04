@@ -188,3 +188,12 @@ test('repeated failed logins are throttled, and responses carry security headers
   assert.match(res.headers.get('content-security-policy'), /script-src 'self'/);
   assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
 });
+
+test('QR endpoint renders an SVG for report links and rejects anything else', async () => {
+  const ok = await fetch(`${base}/api/qr?data=${encodeURIComponent('http://192.168.1.2:3001/#/report?location=CS%20Block')}`);
+  assert.equal(ok.status, 200);
+  assert.match(ok.headers.get('content-type'), /image\/svg\+xml/);
+  assert.match(await ok.text(), /<svg/);
+  assert.equal((await fetch(`${base}/api/qr?data=javascript:alert(1)`)).status, 400);
+  assert.equal((await fetch(`${base}/api/qr`)).status, 400);
+});
