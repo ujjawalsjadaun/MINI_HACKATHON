@@ -2,7 +2,7 @@ import { api } from '../api.js';
 import { h, toast } from '../dom.js';
 import { go, startSession } from '../router.js';
 
-export function authView() {
+function signInCard() {
   let mode = 'login';
   const card = h('div', { class: 'card narrow' });
 
@@ -53,6 +53,34 @@ export function authView() {
   draw();
   return card;
 }
+
+
+// Facts and live notices from the host institute's official site (see server/institute.js for sources).
+function aboutPanel() {
+  const panel = h('aside', { class: 'card about', 'aria-label': 'About the institute' });
+  api('/institute').then((info) => {
+    // h() flattens lists and skips false, which replaceChildren does not.
+    panel.replaceChildren(...h('div', {},
+      h('h2', {}, `About ${info.short}`),
+      h('p', {}, info.status, '. ', info.established, '.'),
+      h('p', { class: 'muted' }, info.campus),
+      h('h3', {}, 'Vision'), h('p', {}, info.vision),
+      h('h3', {}, 'Mission'), h('ul', {}, info.mission.map((m) => h('li', {}, m))),
+      info.notices.length > 0 && [
+        h('h3', {}, 'Latest notices from the institute'),
+        h('ul', { class: 'notices' }, info.notices.map((n) => h('li', {},
+          h('a', { href: n.url, target: '_blank', rel: 'noopener' }, n.title),
+          n.date && h('span', { class: 'hint' }, ` - ${n.date}`)))),
+      ],
+      h('p', { class: 'hint' }, `${info.address}. Phone ${info.phone}.`),
+      h('p', { class: 'hint' }, 'Source: ',
+        info.sources.flatMap((s, i) => [i > 0 && ', ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, s.label)]),
+        ` (retrieved ${info.retrieved}). CampusFix is a student project, not an official service of the institute.`)).childNodes);
+  }).catch(() => panel.remove()); // the panel is a bonus: the sign-in form works without it
+  return panel;
+}
+
+export const authView = () => h('div', { class: 'auth-wrap' }, signInCard(), aboutPanel());
 
 // Two steps: ask the admin office for a code, then set a new password with it.
 export function forgotView() {

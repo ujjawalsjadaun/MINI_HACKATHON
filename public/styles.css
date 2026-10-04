@@ -189,3 +189,13 @@ main { background: rgba(255, 255, 255, .0); }
 @media print { body { background: #fff; } body::before { display: none; } }
 
 .reset-code { font: 700 1.6rem/1.2 ui-monospace, Consolas, monospace; letter-spacing: .15em; color: var(--brand); }
+
+.auth-wrap { display: grid; gap: 1rem; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); align-items: start; max-width: 1040px; margin: 1.5rem auto; }
+.auth-wrap .narrow { margin: 0; }
+.about h2 { margin-bottom: .25rem; }
+.about h3 { margin: 1rem 0 .25rem; font-size: 1rem; color: var(--brand); }
+.about ul { margin: .25rem 0; padding-left: 1.2rem; }
+.about li { margin: .15rem 0; }
+@media (max-width: 860px) { .auth-wrap { grid-template-columns: minmax(0, 1fr); } }
+
+.sitefooter a { color: #f0d58a; }
