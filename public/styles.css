@@ -177,3 +177,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .badge.ack { color: var(--ok); }
 .badge.unack { color: var(--muted); border-style: dashed; }
+
+.ai-box { border-left-color: var(--accent); }
+.ai-box.urgent { border-left-color: var(--danger); }
+.ai-btn { white-space: nowrap; }
