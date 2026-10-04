@@ -33,7 +33,7 @@ CampusFix replaces WhatsApp messages and verbal complaints with one place to rep
 
 ```
 category severity (x10)          electrical / water / sanitation highest
-+ 12 * log2(reports + 1), max 30 more reporters = more urgent
++ 12 * log2(reports + 1), max 30 from 2+ reports: more reporters = more urgent
 + 25                             danger words: spark, flood, smoke, exposed wire ...
 + 4 per day unresolved, max 20   age
 + 20                             past the category SLA deadline
@@ -45,6 +45,12 @@ The label is critical (60+), high (45+), medium (25+) or low. The SLA clock paus
 ### How duplicate detection works
 
 `server/dedupe.js`. A new report is compared only with **active** issues that have the same **category and location** and do not name a **different room** (so CS-101 and CS-102 never merge). Text is normalised (stop words removed, synonyms mapped, so "broken", "dead" and "not working" count as the same fault) and scored with an overlap coefficient against the issue and every report already merged into it. A score of 0.34 or more merges the report, and the percentage is stored as the explanation. The rule is deliberately simple and explainable rather than a black box, so an admin can always see why two reports were grouped.
+
+## Interface and accessibility
+
+- Plain HTML, CSS and JavaScript (no build step) with an institutional look: a navy and gold theme, the host institute's logo and a clear "student project, not an official service" notice on every page.
+- Responsive down to phone width, light and dark themes, and a print stylesheet for the QR stickers.
+- Keyboard and screen-reader friendly: skip link, labelled form fields, visible focus rings, live regions for results, text alternatives for images and QR codes, and status shown as text as well as colour.
 
 ## Run it
 
@@ -66,7 +72,9 @@ Demo accounts created by the seed (change the admin with `ADMIN_EMAIL` / `ADMIN_
 | Student | `asha@campusfix.local` | `student1234` (also bimal, chen, divya, esha) |
 | Staff | `ramesh@campusfix.local` | `staff1234` (also priya, suresh, kavita, arun) |
 
-Run the tests with `npm test`.
+Run the tests with `npm test` (unit tests for matching, priority and SLA rules, and API tests covering the report, confirm, staff and admin flows and the role boundaries).
+
+The seeded admin password is public in this README. Set your own with `ADMIN_PASSWORD=... npm run seed` before sharing the app with anyone.
 
 Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/campusfix.db`).
 
@@ -76,17 +84,21 @@ Sign in as admin, open **QR tags**, and enter the address phones can reach this 
 
 ## 3-minute demo script
 
-1. Open **QR tags** as admin and scan the **CS Block** sticker with a phone (or open its link). Sign in as **Asha**: the form opens with CS Block filled in and already lists "Tube light broken near the entrance, reported by 3 people". Tap **Me too, this is mine**.
-2. Sign in as **Admin**. That issue is **critical** and **overdue**, and the breakdown shows why (3 reports, severity, age, past deadline). Open it to see the merged reports with reporter names, then assign it to **Ramesh** from the list of named staff.
-3. Sign in as **Ramesh** (staff): his queue shows only that issue. Set it to *in progress*, then *Fixed - ask reporters to confirm*.
-4. Back as **Bimal**, open *My complaints*: the projector fix is waiting for him. Choose **No, reopen it** and see it return to the team's queue with higher priority. (Or confirm it to close it.)
-5. Open **Insights**: CS Block electrical is a **recurring problem** (3 in 30 days), plus overdue issues, reopened fixes, resolution time per category and duplicates merged.
+The seed is built for this walk-through (reset with a fresh `data/` folder and `npm run seed` before presenting).
+
+1. **Scan to report.** As admin, open **QR tags** and show the **CS Block** sticker (scan it with a phone on the same Wi-Fi, or open its link). Sign in as **Chen**: the form opens with CS Block already filled in, and lists "Tube light broken near the entrance, reported by 3 people". Tap **Me too, this is mine**. The report count goes to 4 instead of a duplicate being filed.
+2. **Prioritise and assign.** Sign in as **Admin**. The queue is sorted by priority: the sparking-wire water leak and the tube light (now 4 reports, overdue) are **critical**. Open the water leak to show the score breakdown (severity, danger words, past deadline), then assign it to **Suresh** from the named staff list.
+3. **Staff see only their work.** Sign in as **Suresh**: his queue shows only that leak. Set it to *in progress*, then *Fixed - ask reporters to confirm*. Note he has no Insights or QR links.
+4. **Nobody closes a ticket for the reporter.** Sign in as **Divya** (who reported the leak): *My complaints* asks whether it is really fixed. Also try **Bimal**, whose projector fix is waiting: choose **No, reopen it** and watch it return to the team with higher priority.
+5. **Insights.** As admin, open **Insights**: CS Block electrical is a **recurring problem** (3 in 30 days), plus overdue issues, reopened fixes, resolution time per category and duplicates merged.
 
 ## Architecture
 
 ```
 public/            Vanilla ES-module frontend (no build step)
+  index.html styles.css   page shell, theme, print styles
   app.js router.js api.js dom.js
+  assets/          host institute logo (see Credits)
   views/           auth, report, issues (student), admin (admin + staff), insights, qr, shared
 server/
   app.js           Express app, security headers, error handling
