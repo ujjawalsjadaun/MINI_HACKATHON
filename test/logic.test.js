@@ -44,3 +44,13 @@ test('priority escalates with age but not once resolved', () => {
   const old = { category: 'wifi', description: 'down', reportCount: 1, createdAt: now - 6 * 86_400_000 };
   assert.ok(priorityOf({ ...old, status: 'open' }, now).score > priorityOf({ ...old, status: 'resolved' }, now).score);
 });
+
+test('different rooms in the same block never merge; same room or unknown room does', () => {
+  const db = openDb(':memory:');
+  const now = Date.now();
+  db.prepare("INSERT INTO issues (title,category,location,detail,description,department,created_at,updated_at) VALUES ('t','electrical','CS Block','CS-101','Tube light broken','x',?,?)").run(now, now);
+  const probe = { category: 'electrical', location: 'CS Block', description: 'light not working' };
+  assert.equal(findDuplicate(db, { ...probe, detail: 'CS-102' }).length, 0);
+  assert.equal(findDuplicate(db, { ...probe, detail: 'cs 101' }).length, 1);
+  assert.equal(findDuplicate(db, { ...probe, detail: '' }).length, 1);
+});

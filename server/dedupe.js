@@ -38,7 +38,16 @@ export function similarity(a, b) {
 
 export const MATCH_THRESHOLD = 0.34;
 
-// Candidates must share category AND location (the hard constraints). Text similarity
+// "CS-101", "cs 101" and "CS101" are the same room.
+export const normalizeRoom = (text = '') => text.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Two reports that name different rooms are different problems, even in the same block.
+export const sameRoomOrUnknown = (a, b) => {
+  const [x, y] = [normalizeRoom(a), normalizeRoom(b)];
+  return !x || !y || x === y;
+};
+
+// Candidates must share category and location, and not name a different room (hard constraints). Text similarity
 // against the issue and all its merged reports then decides whether it is the same problem.
 export function findDuplicate(db, { category, location, detail = '', description }) {
   const placeholders = ACTIVE_STATUSES.map(() => '?').join(',');
@@ -47,7 +56,8 @@ export function findDuplicate(db, { category, location, detail = '', description
       `SELECT id, title, description, detail FROM issues
        WHERE category = ? AND location = ? AND status IN (${placeholders})`,
     )
-    .all(category, location, ...ACTIVE_STATUSES);
+    .all(category, location, ...ACTIVE_STATUSES)
+    .filter((issue) => sameRoomOrUnknown(issue.detail, detail));
 
   const incoming = tokenize(`${description} ${detail}`);
   const reportsOf = db.prepare('SELECT description FROM reports WHERE issue_id = ?');
