@@ -82,7 +82,7 @@ Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/
 
 Self-service, no admin involved: on **Forgot your password?** the user enters their registered email, a one-time 8-character code is emailed to that address, and the code plus a new password completes the reset.
 
-- The code is never returned by the API or shown on the page, so only someone who can read that inbox can use it. It is stored only as a hash, works once, expires after 15 minutes and locks after five wrong tries. Asking again cancels the earlier code.
+- The code is never returned by the API or shown on the page, so only someone who can read that inbox can use it. It is stored only as a hash, works once, expires after 2 minutes (the page shows a countdown) and locks after five wrong tries. Asking again cancels the earlier code.
 - The reply looks identical whether or not the account exists (and the email is sent in the background), so the form cannot be used to find out who has an account. Requests are limited per account and per IP.
 - A successful reset signs the user out on every device.
 
