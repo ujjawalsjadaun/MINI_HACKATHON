@@ -17,6 +17,7 @@ CampusFix replaces WhatsApp messages and verbal complaints with one place to rep
 | Where exactly is it? | A **schematic campus map**: tap a building to pick the place and tap anywhere to drop a **pin** on the exact spot. A **Problem map** page shows every open problem as a pin coloured by priority, and each issue page shows where it is. |
 | Hard to find what matters in a long list | The **Campus feed** has **Open** and **Solved** tabs, category chips with counts, a place filter, and problems grouped under their category (most urgent group first). |
 | Was it really fixed well? | After a fix is confirmed, the students who reported it **rate it 1 to 5 stars** with an optional comment and can change it later. Staff read the comments (without names), admins also see who wrote them, and **Insights** shows the average rating, the rating per category and the lowest-rated fixes. |
+| Who do I call right now? | An **Emergency contacts** page (call-to-tap numbers, printable). A report rated **Emergency** shows a "call for help first" box with 112, the doctors, ambulance drivers and security in-charge; hostel problems show the hostel office; and the staff issue page lists the engineering cell, hostel office or emergency numbers that fit the issue. |
 | Not everyone reads English | A **language switcher** (English, Hindi, Assamese, Bengali, Odia) in the menu bar. The whole interface switches at once and the choice is remembered. |
 | Nothing happens after reporting | **SLA deadlines per category** (water 24h, electrical 48h, furniture 7 days...). Past the deadline an issue is flagged **overdue** and its priority rises. |
 | "Resolved" tickets that are not | A team can only mark an issue **awaiting confirmation**. A **reporter confirms** the fix (closing it) or **reopens** it. A new report or "me too" on an unconfirmed fix also reopens it. |
@@ -99,6 +100,17 @@ No email service is needed. When registering, a user picks one of six security q
 
 Security questions are weaker than an emailed link, since someone who knows the answer (a friend, a classmate) could reset the account. That trade-off is the price of needing no mail server.
 
+### Emergency contacts
+
+The institute's emergency directory (names and personal mobile numbers of doctors, nurses, drivers and staff) is **not stored in the repository**, because the repository is public. The code ships only the public numbers (112 and the Itanagar police and fire control rooms). The full directory is read from a git-ignored file and is only ever sent to signed-in users:
+
+```bash
+mkdir private
+cp server/emergency-contacts.example.json private/emergency-contacts.json   # then replace the fake entries
+```
+
+Each entry has a `role`, a `name`, a list of `phones` and `tags` that decide where it is offered: `emergency` (shown when a report is rated Emergency), `hostel`, `engineering` (building faults), `medical`, `ambulance`, `security`, `police`, `fire`, `night`. Phone numbers are validated before they become `tel:` links, a broken file is ignored with a warning, and the file is re-read on every request, so edits need no restart. Set `EMERGENCY_FILE` to keep it somewhere else. Keep the numbers current: CampusFix only displays them and never places calls or messages.
+
 ### Smart suggestions on the report form
 
 **Smart suggest** reads the student's rough description and proposes a category, a tidier wording and a safety warning. Nothing is applied until the student taps **Use this**. It needs no account, no API key and no internet.
@@ -160,7 +172,7 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - Photo uploads: JPG, PNG or WebP only, 5 MB limit, random server-side filenames, served with `nosniff`.
 - The UI builds the DOM with `textContent`, so user text cannot inject HTML. A CSP restricts scripts to the same origin; other security headers are set too.
 - Staff and students never see reporter names; students see only their own report text.
-- No secrets in the repo; `.env`, the database and uploads are git-ignored.
+- No secrets or personal data in the repo; `.env`, `private/` (the emergency directory), the database and uploads are git-ignored.
 
 ## Known limitations (MVP)
 
