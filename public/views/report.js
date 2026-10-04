@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { h, toast } from '../dom.js';
 import { go, route } from '../router.js';
+import { placePicker } from './place-picker.js';
 import { getMeta } from './shared.js';
 
 const MAX_PHOTO = 5 * 1024 * 1024;
@@ -15,20 +16,8 @@ route('/report', ['student'], async () => {
       options.map(([value, text]) => h('option', { value }, text)));
 
   const category = select('category', m.categories.map((c) => [c.key, c.label]), 'Choose a category');
-  const location = h('select', { id: 'location', required: true },
-    h('option', { value: '' }, 'Choose a location'),
-    m.campus.map((g) => h('optgroup', { label: g.group }, g.places.map((p) => h('option', { value: p.name }, p.name)))));
-  const floor = h('select', { id: 'floor' }, h('option', { value: '' }, 'Choose a place first'));
-  floor.disabled = true;
-  const floorLabel = (f) => (f === 'G' ? 'Ground floor' : `Floor ${f}`);
-  const places = Object.fromEntries(m.campus.flatMap((g) => g.places.map((p) => [p.name, p.floors])));
-  const updateFloors = () => {
-    const floors = places[location.value] ?? [];
-    floor.replaceChildren(
-      h('option', { value: '' }, floors.length ? 'Floor (optional)' : 'No floors here'),
-      floors.map((f) => h('option', { value: floorLabel(f) }, floorLabel(f))));
-    floor.disabled = !floors.length;
-  };
+  let checkNearby = () => {};
+  const picker = placePicker(m.campus, { onChange: () => checkNearby() });
   const detail = h('input', { id: 'detail', maxlength: 80, placeholder: 'e.g. room number, near the stairs' });
   const description = h('textarea', { id: 'description', required: true, minlength: 8, maxlength: 600, placeholder: 'What is wrong? Be specific so the right team can fix it.' });
   const photo = h('input', { id: 'photo', type: 'file', accept: PHOTO_TYPES.join(',') });
@@ -38,20 +27,19 @@ route('/report', ['student'], async () => {
 
   // Opened from a QR sticker: location (and room) arrive pre-filled.
   const taggedLocation = m.locations.includes(tag.get('location')) ? tag.get('location') : '';
-  if (taggedLocation) location.value = taggedLocation;
-  updateFloors();
+  if (taggedLocation) picker.select(taggedLocation);
   if (taggedLocation && tag.get('detail')) detail.value = tag.get('detail').slice(0, 100);
 
   // As soon as a location is chosen, list what is already open there so the student can
   // join an existing issue ("Me too") instead of filing a duplicate.
   let timer;
   let lastKey = '';
-  const checkNearby = () => {
+  checkNearby = () => {
     clearTimeout(timer);
     timer = setTimeout(async () => {
-      const query = new URLSearchParams({ location: location.value, category: category.value, detail: detail.value, description: description.value });
+      const query = new URLSearchParams({ location: picker.place, category: category.value, detail: detail.value, description: description.value });
       const key = query.toString();
-      if (!location.value || key === lastKey) return;
+      if (!picker.place || key === lastKey) return;
       lastKey = key;
       try {
         const matches = await api(`/issues/nearby?${query}`);
@@ -80,8 +68,7 @@ route('/report', ['student'], async () => {
         }, 'Me too, this is mine')))));
   }
 
-  location.addEventListener('input', updateFloors);
-  for (const el of [category, location, description, detail]) el.addEventListener('input', checkNearby);
+  for (const el of [category, description, detail]) el.addEventListener('input', checkNearby);
   checkNearby();
 
   const form = h('form', {
@@ -94,8 +81,9 @@ route('/report', ['student'], async () => {
 
       const data = new FormData();
       data.append('category', category.value);
-      data.append('location', location.value);
-      data.append('detail', [floor.value, detail.value.trim()].filter(Boolean).join(', '));
+      if (!picker.place) { error.textContent = 'Choose where the problem is on the campus map.'; return; }
+      data.append('location', picker.place);
+      data.append('detail', [picker.floor, detail.value.trim()].filter(Boolean).join(', '));
       data.append('description', description.value);
       if (file) data.append('photo', file);
 
@@ -115,8 +103,7 @@ route('/report', ['student'], async () => {
     },
   },
   h('label', { for: 'category' }, 'Category'), category,
-  h('label', { for: 'location' }, 'Location'), location,
-  h('label', { for: 'floor' }, 'Floor'), floor,
+  h('span', { class: 'field-label' }, 'Where is the problem?'), picker.el,
   h('label', { for: 'detail' }, 'Room / spot (optional)'), detail,
   h('label', { for: 'description' }, 'Description'), description,
   h('label', { for: 'photo' }, 'Photo (optional)'), photo,

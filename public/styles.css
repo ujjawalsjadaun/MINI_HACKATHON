@@ -151,3 +151,26 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .portal-name { padding-left: 0; border-left: 0; }
   nav .who { margin-left: 0; width: 100%; padding: .25rem .75rem; }
 }
+
+/* Campus place picker */
+.picker { margin: .25rem 0 .5rem; }
+.seg { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .75rem; }
+.seg-btn { padding: .45rem .8rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: .9rem; cursor: pointer; transition: background .15s, transform .15s, border-color .15s; }
+.seg-btn:hover { border-color: var(--brand); transform: translateY(-1px); }
+.seg-btn.on { background: var(--brand); border-color: var(--brand); color: var(--brand-text); font-weight: 600; }
+.chips, .floors { display: flex; flex-wrap: wrap; gap: .5rem; animation: pop .25s ease; }
+.chip { position: relative; display: inline-flex; flex-direction: column; align-items: center; min-width: 96px; margin: 0; padding: .6rem .9rem; border: 2px solid var(--border); border-radius: 10px; background: var(--surface); font-weight: 600; cursor: pointer; text-align: center; transition: border-color .15s, background .15s, transform .15s, box-shadow .15s; }
+.chip small { font-weight: 400; color: var(--muted); font-size: .72rem; }
+.chip:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(15, 30, 70, .12); }
+.chip.on { border-color: var(--brand); background: var(--brand); color: var(--brand-text); box-shadow: 0 4px 12px rgba(15, 30, 70, .25); }
+.chip.on small { color: inherit; opacity: .85; }
+.chip.small { min-width: 0; padding: .4rem .8rem; border-radius: 999px; font-size: .88rem; }
+.chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.floors { margin-top: .75rem; align-items: center; }
+.floors:empty { display: none; }
+.floors-title { font-weight: 600; color: var(--muted); font-size: .85rem; }
+.picker-summary { margin: .6rem 0 0; font-size: .9rem; color: var(--muted); }
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .chips, .floors, .chip, .seg-btn { animation: none; transition: none; } }
+.field-label { display: block; font-weight: 600; margin: .75rem 0 .5rem; }
