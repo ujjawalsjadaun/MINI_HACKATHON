@@ -80,13 +80,22 @@ Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/
 
 ### Forgot password
 
-There is no email service, so the admin office approves resets after checking who is asking, the way a campus would in person:
+Self-service, no admin involved: on **Forgot your password?** the user enters their registered email, a one-time 8-character code is emailed to that address, and the code plus a new password completes the reset.
 
-1. The user opens **Forgot your password?** on the sign-in page and enters their email. The reply looks the same whether or not the account exists, so it cannot be used to find out who has one. The page then waits.
-2. An admin opens **Reset requests** (the list refreshes by itself), checks the person's college ID and taps **Approve reset**.
-3. The waiting page notices within a few seconds and shows the new-password form. Only the browser that made the request can finish the reset, and the approval is open for 30 minutes.
+- The code is never returned by the API or shown on the page, so only someone who can read that inbox can use it. It is stored only as a hash, works once, expires after 15 minutes and locks after five wrong tries. Asking again cancels the earlier code.
+- The reply looks identical whether or not the account exists (and the email is sent in the background), so the form cannot be used to find out who has an account. Requests are limited per account and per IP.
+- A successful reset signs the user out on every device.
 
-If the user closed the page, approving also produces a one-time 8-character code that the admin can read out; it is shown once, stored only as a hash, works once, and locks after five wrong tries. A successful reset signs the user out on every device. Admin accounts are not reset this way; re-run the seed with `ADMIN_PASSWORD` on a fresh database instead.
+**Sending real email.** Copy `.env.example` to `.env` (git-ignored) and fill in the SMTP settings, for example Gmail with an *App password* (turn on 2-step verification, then Google Account > Security > App passwords):
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASS=<the app password>
+```
+
+Restart the server and the reset page says "Check your email". **Without these settings the app runs in demo mode:** the email is printed in the server console and the page says so, instead of pretending an email was sent. Other settings that work the same way: `PORT`, `OLLAMA_MODEL`.
 
 ### Smart suggestions on the report form
 
@@ -148,14 +157,14 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - Photo uploads: JPG, PNG or WebP only, 5 MB limit, random server-side filenames, served with `nosniff`.
 - The UI builds the DOM with `textContent`, so user text cannot inject HTML. A CSP restricts scripts to the same origin; other security headers are set too.
 - Staff and students never see reporter names; students see only their own report text.
-- No secrets in the repo; `.env`, the database and uploads are git-ignored.
+- No secrets in the repo; `.env` (SMTP password), the database and uploads are git-ignored, and `.env.example` holds placeholders only.
 
 ## Known limitations (MVP)
 
 - Duplicate matching is rule-based, not semantic, and does not compare photos. It can miss duplicates described in very different words. Admins cannot yet merge issues by hand.
 - "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
-- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password resets work through admin approval instead of an emailed link.
+- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password reset needs SMTP settings to send real emails; otherwise it runs in demo mode (see Forgot password).
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
@@ -168,7 +177,7 @@ The sign-in page shows facts about the host institute that were copied from [nit
 
 ## Credits
 
-Express, multer, qrcode, and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
+Express, multer, qrcode, nodemailer (reset emails), and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
 
 The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. CampusFix is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
 
