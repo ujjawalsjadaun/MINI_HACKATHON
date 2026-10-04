@@ -569,6 +569,11 @@ test('students rate the fix once an issue is resolved; each role sees only what 
   const asAdmin = (await call('GET', `/api/issues/${id}`, { token: admin })).data.feedback;
   assert.deepEqual(asAdmin.entries.map((e) => e.reporter).sort(), ['Faisal', 'Fiza']);
 
+  // The student's own list says which fixes they have rated (and with what).
+  const mine = (await call('GET', '/api/issues?mine=1', { token: a })).data.find((i) => i.id === id);
+  assert.equal(mine.my_rating, 4);
+  assert.equal((await call('GET', '/api/issues?mine=1', { token: outsider })).data.length, 0);
+
   // Insights summarise ratings and surface low ones with their comments (no names).
   await rate(b, { rating: 1, comment: 'Went down again next day' });
   const insights = (await call('GET', '/api/insights', { token: admin })).data;

@@ -184,7 +184,9 @@ export function listIssues(db, { status, category, location, mineOf, assignedTo 
   if (assignedTo) { where.push('i.assigned_user_id = ?'); params.push(assignedTo); }
   if (mineOf) { where.push('EXISTS (SELECT 1 FROM reports r WHERE r.issue_id = i.id AND r.user_id = ?)'); params.push(mineOf); }
   const sql = `${ISSUE_SELECT} ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`;
-  return db.prepare(sql).all(...params).map((row) => withPriority(row))
+  // A student's own list also says which fixes they have already rated.
+  const myRatings = mineOf ? new Map(db.prepare('SELECT issue_id, rating FROM feedback WHERE user_id = ?').all(mineOf).map((r) => [r.issue_id, r.rating])) : null;
+  return db.prepare(sql).all(...params).map((row) => withPriority(myRatings ? { ...row, my_rating: myRatings.get(row.id) ?? null } : row))
     .sort((a, b) => b.priority.score - a.priority.score || b.created_at - a.created_at);
 }
 
