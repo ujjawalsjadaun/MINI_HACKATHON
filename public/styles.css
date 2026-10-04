@@ -221,3 +221,7 @@ main { width: min(1080px, calc(100% - 1.5rem)); max-width: none; margin: 1rem au
 .campus-map .map-pin { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); }
 .campus-map a.map-pin { cursor: pointer; }
 .campus-map a.map-pin:hover { filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .5)) brightness(1.1); }
+
+.legend { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: .5rem 0 1rem; font-size: .9rem; text-transform: capitalize; }
+.legend-item { display: inline-flex; align-items: center; gap: .4rem; }
+.legend-item i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border); }

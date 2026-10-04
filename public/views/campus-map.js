@@ -22,6 +22,32 @@ const svg = (tag, attrs = {}, ...children) => {
   return el;
 };
 
+export const PRIORITY_COLOR = { critical: '#b3261e', high: '#d4630a', medium: '#c9a100', low: '#3d6b4f' };
+
+// Turns issues into map pins. An issue with a dropped pin sits exactly there; one without sits (faded) inside its
+// building, spread out so several issues in the same building do not hide each other. Most urgent are drawn last, on top.
+export function issuePins(meta, issues, hrefOf) {
+  const { width: W, height: H } = meta.mapSize;
+  const spot = Object.fromEntries(meta.campus.flatMap((g) => g.places.map((p) => [p.name, p.map])));
+  const used = new Map();
+  return [...issues].sort((a, b) => a.priority.score - b.priority.score).map((issue) => {
+    const exact = issue.pin_x != null && issue.pin_y != null;
+    let x = issue.pin_x;
+    let y = issue.pin_y;
+    if (!exact) {
+      const b = spot[issue.location];
+      const n = used.get(issue.location) ?? 0;
+      used.set(issue.location, n + 1);
+      x = (b.x + b.w * [0.12, 0.88, 0.3, 0.7][n % 4]) / W; // corners first, so names stay readable
+      y = (b.y + b.h - 6 - Math.floor(n / 4) * 10) / H; // along the bottom edge, clear of the name
+    }
+    return {
+      x, y, approx: !exact, href: hrefOf?.(issue), color: PRIORITY_COLOR[issue.priority.label],
+      title: `${issue.title} (${issue.priority.label})${exact ? '' : `, exact spot not marked, somewhere in ${issue.location}`}`,
+    };
+  });
+}
+
 // Long names go on two lines, split at the space that keeps the lines most even.
 function nameLines(name) {
   const spaces = [...name].flatMap((c, i) => (c === ' ' ? [i] : []));
@@ -49,13 +75,13 @@ export function campusMap(meta, { interactive = false, onPick, label = 'Schemati
     svg('text', { x: x + 16, y: y + 26, class: 'map-zone' }, title),
   ];
 
-  function pinGraphic(x, y, color, title, href) {
+  function pinGraphic(x, y, color, title, href, approx = false) {
     const body = [
-      svg('path', { d: PIN_PATH, fill: color, stroke: '#fff', 'stroke-width': 2 }),
+      svg('path', { d: PIN_PATH, fill: color, 'fill-opacity': approx ? .6 : 1, stroke: '#fff', 'stroke-width': 2, 'stroke-dasharray': approx ? '4 3' : null }),
       svg('circle', { cx: 0, cy: -27, r: 5.5, fill: '#fff' }),
       title && svg('title', {}, title),
     ];
-    const attrs = { class: 'map-pin', transform: `translate(${x} ${y})` };
+    const attrs = { class: 'map-pin', transform: `translate(${x} ${y})${approx ? ' scale(.72)' : ''}` };
     return href ? svg('a', { ...attrs, href }, body) : svg('g', attrs, body);
   }
 
@@ -88,7 +114,7 @@ export function campusMap(meta, { interactive = false, onPick, label = 'Schemati
         svg('text', { class: 'map-name', 'text-anchor': 'middle', 'font-size': size },
           lines.map((line, i) => svg('tspan', { x: x + w / 2, y: y + h / 2 + size * 0.35 + (i - (lines.length - 1) / 2) * size * 1.15 }, line))));
       }),
-      ...pins.map((q) => pinGraphic(q.x * W, q.y * H, q.color ?? '#b3261e', q.title, q.href)),
+      ...pins.map((q) => pinGraphic(q.x * W, q.y * H, q.color ?? '#b3261e', q.title, q.href, q.approx)),
       pin && pinGraphic(pin.x * W, pin.y * H, '#12306b', 'Your pin'),
     ].flat().filter(Boolean));
   }

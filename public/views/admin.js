@@ -1,7 +1,7 @@
 import { api, session } from '../api.js';
 import { badge, formatDate, h, toast } from '../dom.js';
 import { go, route } from '../router.js';
-import { categoryLabel, emptyState, getMeta, issueCard, timeline } from './shared.js';
+import { categoryLabel, emptyState, getMeta, issueCard, timeline, whereCard } from './shared.js';
 
 const option = (value, text, selected) => h('option', { value, selected: selected ? true : null }, text);
 
@@ -112,6 +112,7 @@ route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
   return h('section', {},
     h('p', {}, h('a', { href: '#/admin' }, '< Back to queue')),
     issueCard(issue, m),
+    whereCard(m, issue),
     acknowledgePanel,
     h('div', { class: 'card' },
       h('h2', {}, 'Why this priority'),

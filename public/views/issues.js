@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { badge, formatDate, h, toast } from '../dom.js';
 import { go, route } from '../router.js';
-import { emptyState, getMeta, issueCard, timeline } from './shared.js';
+import { emptyState, getMeta, issueCard, timeline, whereCard } from './shared.js';
 
 function confirmPanel(id) {
   const note = h('textarea', { id: 'reopen-note', maxlength: 300, placeholder: 'If it is not fixed, tell us what is still wrong (optional)' });
@@ -74,6 +74,7 @@ route('/issue/:id', ['student'], async ({ id }) => {
   return h('section', {},
     h('p', {}, h('a', { href: '#/mine' }, '< Back to my complaints')),
     issueCard(issue, m),
+    whereCard(m, issue),
     h('div', { class: 'card' },
       h('h2', {}, 'Why this priority'),
       h('p', {}, `${issue.priority.label}, score ${issue.priority.score}: ${issue.priority.reasons.join(', ')}.`),

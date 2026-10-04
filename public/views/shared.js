@@ -1,5 +1,6 @@
 import { session } from '../api.js';
 import { badge, formatDate, h } from '../dom.js';
+import { campusMap, issuePins } from './campus-map.js';
 
 let meta;
 export async function getMeta(api) {
@@ -42,4 +43,15 @@ export function timeline(log) {
 export function emptyState(title, text, link) {
   return h('div', { class: 'card' }, h('h2', {}, title), h('p', { class: 'muted' }, text),
     link && h('a', { class: 'button', href: link.href }, link.text));
+}
+
+// Where the problem is, on the schematic campus map.
+export function whereCard(m, issue) {
+  const map = campusMap(m, { label: `Map showing ${issue.location}` });
+  map.setPlace(issue.location);
+  map.setPins(issuePins(m, [issue]));
+  return h('div', { class: 'card' },
+    h('h2', {}, 'Where'),
+    h('p', { class: 'muted' }, `${issue.location}${issue.detail ? `, ${issue.detail}` : ''}. ${issue.pin_x != null ? 'The reporter marked the exact spot.' : 'The exact spot was not marked.'}`),
+    h('div', { class: 'map-wrap' }, map.el));
 }

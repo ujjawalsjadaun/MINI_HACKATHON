@@ -6,6 +6,7 @@ import './views/admin.js';
 import './views/qr.js';
 import './views/insights.js';
 import './views/issues.js';
+import './views/map.js';
 import './views/report.js';
 import './views/security.js';
 
@@ -16,9 +17,9 @@ const nav = document.getElementById('nav');
 const PUBLIC_PATHS = new Set(['/login', '/forgot']);
 
 const NAV = {
-  admin: [['/admin', 'Issues'], ['/insights', 'Insights'], ['/admin/qr', 'QR tags']],
-  staff: [['/admin', 'My assignments'], ['/security', 'Security']],
-  student: [['/report', 'Report issue'], ['/mine', 'My complaints'], ['/feed', 'Campus feed'], ['/security', 'Security']],
+  admin: [['/admin', 'Issues'], ['/map', 'Map'], ['/insights', 'Insights'], ['/admin/qr', 'QR tags']],
+  staff: [['/admin', 'My assignments'], ['/map', 'Map'], ['/security', 'Security']],
+  student: [['/report', 'Report issue'], ['/mine', 'My complaints'], ['/feed', 'Campus feed'], ['/map', 'Map'], ['/security', 'Security']],
 };
 
 function renderNav() {
