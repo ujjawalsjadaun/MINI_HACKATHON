@@ -1,7 +1,8 @@
 import { api, session } from './api.js';
 import { h, toast } from './dom.js';
-import { go, homeFor, matchRoute } from './router.js';
+import { currentPath, go, homeFor, matchRoute } from './router.js';
 import { authView } from './views/auth.js';
+import './views/admin.js';
 import './views/issues.js';
 import './views/report.js';
 
@@ -15,7 +16,7 @@ const NAV = {
 
 function renderNav() {
   const user = session.user;
-  const current = location.hash.slice(1) || '/';
+  const current = currentPath();
   nav.replaceChildren(
     ...(user ? NAV[user.role] : []).map(([path, text]) =>
       h('a', { href: `#${path}`, 'aria-current': current.startsWith(path) ? 'page' : null }, text)),
@@ -36,7 +37,7 @@ function showError(err) {
 }
 
 async function render() {
-  const path = location.hash.slice(1) || '/';
+  const path = currentPath();
   const user = session.user;
   if (!user && path !== '/login') return go('/login');
   if (user && (path === '/login' || path === '/')) return go(homeFor(user));

@@ -13,6 +13,9 @@ export function go(path) {
   else location.hash = path;
 }
 
+// Hash path without its query string, e.g. '#/admin?status=open' -> '/admin'.
+export const currentPath = () => (location.hash.slice(1) || '/').split('?')[0];
+
 export const homeFor = (user) => (user.role === 'admin' ? '/admin' : '/report');
 
 export function startSession({ token, user }) {

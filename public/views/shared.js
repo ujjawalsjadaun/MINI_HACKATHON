@@ -1,3 +1,4 @@
+import { session } from '../api.js';
 import { badge, formatDate, h } from '../dom.js';
 
 let meta;
@@ -11,7 +12,7 @@ export const categoryLabel = (m, key) => m.categories.find((c) => c.key === key)
 export function issueCard(issue, m, { actions } = {}) {
   return h('article', { class: 'card issue' },
     h('div', { class: 'row between' },
-      h('h3', {}, h('a', { href: `#/issue/${issue.id}` }, issue.title)),
+      h('h3', {}, h('a', { href: `#/${session.user.role === 'admin' ? 'admin/' : ''}issue/${issue.id}` }, issue.title)),
       h('div', { class: 'row' },
         badge(issue.priority.label, issue.priority.label),
         badge(issue.status, `status-${issue.status}`))),
