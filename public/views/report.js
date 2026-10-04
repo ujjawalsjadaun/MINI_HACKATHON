@@ -8,6 +8,7 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 route('/report', ['student'], async () => {
   const m = await getMeta(api);
+  const tag = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
   const select = (id, options, placeholder) =>
     h('select', { id, required: true },
       h('option', { value: '' }, placeholder),
@@ -21,6 +22,11 @@ route('/report', ['student'], async () => {
   const error = h('p', { class: 'error', role: 'alert' });
   const submit = h('button', { class: 'primary', type: 'submit' }, 'Submit report');
   const similar = h('div', { 'aria-live': 'polite' });
+
+  // Opened from a QR sticker: location (and room) arrive pre-filled.
+  const taggedLocation = m.locations.includes(tag.get('location')) ? tag.get('location') : '';
+  if (taggedLocation) location.value = taggedLocation;
+  if (taggedLocation && tag.get('detail')) detail.value = tag.get('detail').slice(0, 100);
 
   // Before filing, show open issues at the same place that look like the same problem.
   let timer;
@@ -103,6 +109,7 @@ route('/report', ['student'], async () => {
 
   return h('section', { class: 'card', style: 'max-width:640px' },
     h('h1', {}, 'Report a campus issue'),
+    taggedLocation && h('div', { class: 'notice ok' }, `Location set from QR tag: ${taggedLocation}${detail.value ? `, ${detail.value}` : ''}`),
     h('p', { class: 'muted' }, 'It is routed to the right team automatically. If others already reported the same problem, your report is grouped with theirs.'),
     form);
 });

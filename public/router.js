@@ -18,10 +18,23 @@ export const currentPath = () => (location.hash.slice(1) || '/').split('?')[0];
 
 export const homeFor = (user) => (user.role === 'admin' ? '/admin' : '/report');
 
+// A QR scan while signed out must survive the sign-in step.
+const NEXT_KEY = 'campusfix.next';
+export function rememberNext() {
+  try { sessionStorage.setItem(NEXT_KEY, location.hash.slice(1)); } catch { /* storage unavailable */ }
+}
+function takeNext() {
+  try {
+    const next = sessionStorage.getItem(NEXT_KEY);
+    sessionStorage.removeItem(NEXT_KEY);
+    return next && next !== '/login' ? next : null;
+  } catch { return null; }
+}
+
 export function startSession({ token, user }) {
   session.token = token;
   session.user = user;
-  go(homeFor(user));
+  go(takeNext() ?? homeFor(user));
 }
 
 export function matchRoute(path) {

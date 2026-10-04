@@ -113,3 +113,15 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .bar { grid-template-columns: 110px 1fr 30px; }
   main { padding-top: .75rem; }
 }
+
+.stickers { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.sticker { margin: 0; padding: 1rem; text-align: center; background: #fff; color: #111; border: 2px dashed #888; border-radius: var(--radius); break-inside: avoid; }
+.sticker img { display: block; margin: 0 auto .5rem; max-width: 100%; height: auto; }
+.sticker .hint { color: #444; }
+
+@media print {
+  .topbar, .no-print, .toasts, .skip-link { display: none !important; }
+  body { background: #fff; }
+  main { max-width: none; padding: 0; }
+  .stickers { grid-template-columns: repeat(3, 1fr); }
+}
