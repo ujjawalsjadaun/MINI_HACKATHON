@@ -41,10 +41,17 @@ export const MATCH_THRESHOLD = 0.34;
 // "CS-101", "cs 101" and "CS101" are the same room.
 export const normalizeRoom = (text = '') => text.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-// Two reports that name different rooms are different problems, even in the same block.
+// The report form writes "Floor 2, 204" or "Ground floor, 204": split that into a floor and a room.
+export function parseDetail(text = '') {
+  const m = /^\s*(ground floor|floor\s*\d+)\s*(?:,\s*)?(.*)$/i.exec(text);
+  return m ? { floor: normalizeRoom(m[1]), room: normalizeRoom(m[2]) } : { floor: '', room: normalizeRoom(text) };
+}
+
+// Two reports that name a different floor or a different room are different problems, even in the same
+// block. A missing floor or room is unknown, so it never blocks a match.
 export const sameRoomOrUnknown = (a, b) => {
-  const [x, y] = [normalizeRoom(a), normalizeRoom(b)];
-  return !x || !y || x === y;
+  const [x, y] = [parseDetail(a), parseDetail(b)];
+  return (!x.floor || !y.floor || x.floor === y.floor) && (!x.room || !y.room || x.room === y.room);
 };
 
 // Candidates must share category and location, and not name a different room (hard constraints). Text similarity

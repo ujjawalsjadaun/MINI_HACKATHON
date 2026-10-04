@@ -55,6 +55,18 @@ test('different rooms in the same block never merge; same room or unknown room d
   assert.equal(findDuplicate(db, { ...probe, detail: '' }).length, 1);
 });
 
+test('floor and room are compared separately, so "Floor 1, 204" still matches "204"', () => {
+  const db = openDb(':memory:');
+  const now = Date.now();
+  db.prepare("INSERT INTO issues (title,category,location,detail,description,department,created_at,updated_at) VALUES ('t','electrical','B-II','Floor 1, 204','Tube light broken','x',?,?)").run(now, now);
+  const probe = { category: 'electrical', location: 'B-II', description: 'light not working' };
+  assert.equal(findDuplicate(db, { ...probe, detail: '204' }).length, 1);
+  assert.equal(findDuplicate(db, { ...probe, detail: 'Floor 1' }).length, 1);
+  assert.equal(findDuplicate(db, { ...probe, detail: 'Floor 1, 204' }).length, 1);
+  assert.equal(findDuplicate(db, { ...probe, detail: 'Floor 2, 204' }).length, 0);
+  assert.equal(findDuplicate(db, { ...probe, detail: 'Floor 1, 205' }).length, 0);
+});
+
 test('a reopened issue ranks higher than one that was never reopened', () => {
   const base = { category: 'electrical', description: 'fan stopped', reportCount: 1, createdAt: Date.now(), status: 'open' };
   const reopened = priorityOf({ ...base, reopenCount: 1 });
