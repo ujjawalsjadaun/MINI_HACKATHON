@@ -72,11 +72,25 @@ Demo accounts created by the seed (change the admin with `ADMIN_EMAIL` / `ADMIN_
 | Student | `asha@campusfix.local` | `student1234` (also bimal, chen, divya, esha) |
 | Staff | `ramesh@campusfix.local` | `staff1234` (also priya, suresh, kavita, arun) |
 
+Every demo student and staff member has the security question "favourite school teacher" with the answer **`nitap`** (used by Forgot password below). The admin account has none and cannot be reset that way.
+
 Run the tests with `npm test` (unit tests for matching, priority and SLA rules, and API tests covering the report, confirm, staff and admin flows and the role boundaries).
 
 The seeded admin password is public in this README. Set your own with `ADMIN_PASSWORD=... npm run seed` before sharing the app with anyone.
 
 Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/campusfix.db`).
+
+### Forgot password (security question)
+
+No email service is needed. When registering, a user picks one of six security questions and gives an answer. If they forget their password, **Forgot your password?** on the sign-in page asks for their email, shows their question, and a correct answer plus a new password completes the reset.
+
+- The answer is stored only as a salted hash (scrypt) and compared ignoring case and extra spaces.
+- Five wrong answers lock resets for that account for 10 minutes (and 30 per IP address), so an answer cannot be guessed at. A successful reset signs the user out on every device.
+- The page cannot be used to find out who has an account: an unknown email gets a question too (always the same one for the same email), and a wrong answer gives one generic message.
+- **Admin accounts are excluded** because a guessable answer is not enough protection for the most powerful account; an admin password is reset by re-running the seed on a fresh database.
+- Accounts created before this feature see a banner and can add a question from **Security** in the menu (after confirming their current password).
+
+Security questions are weaker than an emailed link, since someone who knows the answer (a friend, a classmate) could reset the account. That trade-off is the price of needing no mail server.
 
 ### Smart suggestions on the report form
 
@@ -145,7 +159,7 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - Duplicate matching is rule-based, not semantic, and does not compare photos. It can miss duplicates described in very different words. Admins cannot yet merge issues by hand.
 - "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
-- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification, and password reset is not built yet.
+- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password reset uses security questions, which are convenient but weaker than an emailed link.
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
