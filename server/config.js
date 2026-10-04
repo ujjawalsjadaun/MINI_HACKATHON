@@ -62,9 +62,6 @@ export const FLOORS_OF = Object.fromEntries(CAMPUS.flatMap((g) => g.places.map((
 export const STATUSES = ['open', 'assigned', 'in_progress', 'awaiting_confirmation', 'resolved'];
 export const ACTIVE_STATUSES = ['open', 'assigned', 'in_progress', 'awaiting_confirmation'];
 
-// Only institute addresses can register, sign in or reset a password.
-export const EMAIL_DOMAIN = 'nitap.ac.in';
-
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 

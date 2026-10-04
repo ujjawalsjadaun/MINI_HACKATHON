@@ -120,6 +120,7 @@ export default {
   "Incorrect email or password": "ईमेल या पासवर्ड गलत है",
   "Too many failed attempts. Try again in a few minutes.": "बहुत अधिक असफल प्रयास। कुछ मिनट बाद फिर कोशिश करें।",
   "An account with this email already exists": "इस ईमेल से खाता पहले से मौजूद है",
+  "Enter a valid email address": "मान्य ईमेल पता दर्ज करें",
   "Choose one of the security questions": "सुरक्षा प्रश्नों में से एक चुनें",
   "The security answer must be 3 to 60 characters": "सुरक्षा उत्तर 3 से 60 अक्षरों का होना चाहिए",
   "Too many wrong answers. Try again in a few minutes.": "बहुत अधिक गलत उत्तर। कुछ मिनट बाद फिर कोशिश करें।",
@@ -481,8 +482,4 @@ export default {
   "Police Control Room": "पुलिस नियंत्रण कक्ष",
   "Fire Station, Itanagar": "अग्निशमन केंद्र, ईटानगर",
   "Itanagar Control Room": "ईटानगर नियंत्रण कक्ष",
-
-  // Institute email addresses only
-  "Use your NIT Arunachal Pradesh email address (ending in @nitap.ac.in)": "अपना एनआईटी अरुणाचल प्रदेश ईमेल पता उपयोग करें (@nitap.ac.in पर समाप्त होने वाला)",
-  "Only @nitap.ac.in email addresses can be used.": "केवल @nitap.ac.in वाले ईमेल पते ही उपयोग किए जा सकते हैं।",
 };

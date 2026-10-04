@@ -14,7 +14,7 @@ const db = openDb(':memory:');
 
 before(async () => {
   uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'campusfix-'));
-  createUser(db, { name: 'Admin', email: 'admin@nitap.ac.in', password: 'adminpass', role: 'admin' });
+  createUser(db, { name: 'Admin', email: 'admin@test.edu', password: 'adminpass', role: 'admin' });
   server = createApp(db, { uploadDir, emergencyFile: path.join(uploadDir, 'no-such-file.json') }).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://localhost:${server.address().port}`;
@@ -42,19 +42,19 @@ const QUESTION = SECURITY_QUESTIONS[0];
 const tokens = {};
 async function signup(name) {
   const { data } = await call('POST', '/api/auth/register', {
-    body: { name, email: `${name.toLowerCase()}@nitap.ac.in`, password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' },
+    body: { name, email: `${name.toLowerCase()}@test.edu`, password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' },
   });
   tokens[name] = data.token;
   return data.token;
 }
 
 const makeStaff = (name, department) =>
-  createUser(db, { name, email: `${name.toLowerCase()}@nitap.ac.in`, password: 'staffpass', role: 'staff', department });
+  createUser(db, { name, email: `${name.toLowerCase()}@test.edu`, password: 'staffpass', role: 'staff', department });
 const staffLogin = async (name) =>
-  (await call('POST', '/api/auth/login', { body: { email: `${name.toLowerCase()}@nitap.ac.in`, password: 'staffpass' } })).data.token;
+  (await call('POST', '/api/auth/login', { body: { email: `${name.toLowerCase()}@test.edu`, password: 'staffpass' } })).data.token;
 
 const adminLogin = async () =>
-  (await call('POST', '/api/auth/login', { body: { email: 'admin@nitap.ac.in', password: 'adminpass' } })).data.token;
+  (await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } })).data.token;
 
 // The only way to close an issue: the team marks it fixed, then a reporter confirms.
 async function resolveIssue(adminToken, issueId, reporterToken) {
@@ -77,38 +77,8 @@ test('registration validates input and rejects duplicate emails', async () => {
   const bad = await call('POST', '/api/auth/register', { body: { name: 'A', email: 'nope', password: '1' } });
   assert.equal(bad.status, 400);
   await signup('Dup');
-  const again = await call('POST', '/api/auth/register', { body: { name: 'Dup', email: 'dup@nitap.ac.in', password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' } });
+  const again = await call('POST', '/api/auth/register', { body: { name: 'Dup', email: 'dup@test.edu', password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' } });
   assert.equal(again.status, 409);
-});
-
-test('only @nitap.ac.in addresses can register, sign in or reset a password', async () => {
-  const outsiders = ['zoya@gmail.com', 'zoya@nitap.ac.in.evil.com', 'zoya@fake-nitap.ac.in', 'zoya@student.nitap.ac.in', '@nitap.ac.in'];
-  for (const email of outsiders) {
-    const reg = await call('POST', '/api/auth/register', { body: { name: 'Zoya', email, password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' } });
-    assert.equal(reg.status, 400, `register ${email}`);
-    assert.match(reg.data.error, /@nitap\.ac\.in/);
-    assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'secret123' } })).status, 400, `login ${email}`);
-    assert.equal((await call('GET', `/api/auth/security-question?email=${encodeURIComponent(email)}`)).status, 400, `question ${email}`);
-    assert.equal((await call('POST', '/api/auth/reset-password', { body: { email, answer: 'Rani', password: 'secret123' } })).status, 400, `reset ${email}`);
-  }
-  // Letter case does not matter: the address is stored and matched in lower case.
-  const ok = await call('POST', '/api/auth/register', { body: { name: 'Zoya', email: 'Zoya@NITAP.AC.IN', password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' } });
-  assert.equal(ok.status, 201);
-  assert.equal(ok.data.user.email, 'zoya@nitap.ac.in');
-  assert.equal((await call('POST', '/api/auth/login', { body: { email: 'ZOYA@nitap.ac.in', password: 'secret123' } })).status, 200);
-});
-
-test('demo accounts from before the email rule are moved to @nitap.ac.in on startup', () => {
-  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'campusfix-db-')), 'old.db');
-  const old = openDb(file);
-  // Written straight into the table, as a database seeded before the rule would hold them.
-  const insert = old.prepare("INSERT INTO users (name, email, password_hash, salt, role, created_at) VALUES (?, ?, 'x', 'x', 'student', 0)");
-  insert.run('Asha', 'asha@campusfix.local');
-  insert.run('Kept', 'kept@nitap.ac.in');
-  old.close();
-  const reopened = openDb(file);
-  assert.deepEqual(reopened.prepare('SELECT email FROM users ORDER BY id').all().map((u) => u.email), ['asha@nitap.ac.in', 'kept@nitap.ac.in']);
-  reopened.close();
 });
 
 test('three students reporting the same broken light become one issue', async () => {
@@ -196,7 +166,7 @@ test('students only see their own report details; reporter names stay hidden', a
 
 test('only admins can update issues; updates land on the student-visible timeline', async () => {
   const student = await signup('Jai');
-  const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@nitap.ac.in', password: 'adminpass' } });
+  const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } });
   const created = await report(student, 'Water leaking from the ceiling', { category: 'water', location: 'Administrative Building' });
   const id = created.data.issueId;
 
@@ -228,7 +198,7 @@ test('insights are admin-only and report merged duplicates and recurring problem
   const student = await signup('Kiran');
   assert.equal((await call('GET', '/api/insights', { token: student })).status, 403);
 
-  const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@nitap.ac.in', password: 'adminpass' } });
+  const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } });
   // A second electrical issue at B-II, after the first is resolved, marks the spot as recurring.
   const { data: issues } = await call('GET', '/api/issues?location=B-II&category=electrical', { token: admin.token });
   await resolveIssue(admin.token, issues[0].id, tokens.Asha);
@@ -251,7 +221,7 @@ test('insights are admin-only and report merged duplicates and recurring problem
 
 test('repeated failed logins are throttled, and responses carry security headers', async () => {
   await signup('Lena');
-  const attempt = () => call('POST', '/api/auth/login', { body: { email: 'lena@nitap.ac.in', password: 'wrong-password' } });
+  const attempt = () => call('POST', '/api/auth/login', { body: { email: 'lena@test.edu', password: 'wrong-password' } });
   for (let i = 0; i < 5; i++) assert.equal((await attempt()).status, 401);
   assert.equal((await attempt()).status, 429);
 
@@ -431,7 +401,7 @@ test('suggestions work without any key, are student-only and rate limited', asyn
 });
 
 test('registration needs one of the listed security questions and a usable answer', async () => {
-  const register = (extra) => call('POST', '/api/auth/register', { body: { name: 'Samir', email: 'samir@nitap.ac.in', password: 'secret123', ...extra } });
+  const register = (extra) => call('POST', '/api/auth/register', { body: { name: 'Samir', email: 'samir@test.edu', password: 'secret123', ...extra } });
   assert.equal((await register({})).status, 400);
   assert.equal((await register({ securityQuestion: 'Made-up question?', securityAnswer: 'Rani' })).status, 400);
   assert.equal((await register({ securityQuestion: QUESTION, securityAnswer: 'ab' })).status, 400);
@@ -442,7 +412,7 @@ test('registration needs one of the listed security questions and a usable answe
 
 test('security question reset: right answer changes the password and ends all sessions', async () => {
   const student = await signup('Reena');
-  const email = 'reena@nitap.ac.in';
+  const email = 'reena@test.edu';
   const reset = (body) => call('POST', '/api/auth/reset-password', { body: { email, password: 'brandnew1', ...body } });
 
   const asked = await call('GET', `/api/auth/security-question?email=${email}`);
@@ -464,28 +434,28 @@ test('security question reset does not reveal accounts, locks after wrong answer
   const question = (email) => call('GET', `/api/auth/security-question?email=${email}`);
 
   // Unknown emails and admins look like any other account, and always get the same question.
-  const ghost = (await question('nobody@nitap.ac.in')).data.question;
+  const ghost = (await question('nobody@test.edu')).data.question;
   assert.ok(SECURITY_QUESTIONS.includes(ghost));
-  assert.equal((await question('nobody@nitap.ac.in')).data.question, ghost);
-  assert.ok(SECURITY_QUESTIONS.includes((await question('admin@nitap.ac.in')).data.question));
+  assert.equal((await question('nobody@test.edu')).data.question, ghost);
+  assert.ok(SECURITY_QUESTIONS.includes((await question('admin@test.edu')).data.question));
   const wrong = (email, answer) => call('POST', '/api/auth/reset-password', { body: { email, answer, password: 'brandnew1' } });
-  assert.equal((await wrong('nobody@nitap.ac.in', 'anything')).status, 400);
-  assert.equal((await wrong('admin@nitap.ac.in', 'adminpass')).status, 400);
+  assert.equal((await wrong('nobody@test.edu', 'anything')).status, 400);
+  assert.equal((await wrong('admin@test.edu', 'adminpass')).status, 400);
 
   // Five wrong answers lock the account's reset, even for the right answer.
-  for (let i = 0; i < 5; i++) assert.equal((await wrong('rohan@nitap.ac.in', 'wrong')).status, 400);
-  assert.equal((await wrong('rohan@nitap.ac.in', 'Rani')).status, 429);
-  assert.equal((await call('POST', '/api/auth/login', { body: { email: 'rohan@nitap.ac.in', password: 'secret123' } })).status, 200);
+  for (let i = 0; i < 5; i++) assert.equal((await wrong('rohan@test.edu', 'wrong')).status, 400);
+  assert.equal((await wrong('rohan@test.edu', 'Rani')).status, 429);
+  assert.equal((await call('POST', '/api/auth/login', { body: { email: 'rohan@test.edu', password: 'secret123' } })).status, 200);
 });
 
 test('signed-in users can set a security question with their current password', async () => {
-  const id = createUser(db, { name: 'Old', email: 'old@nitap.ac.in', password: 'oldpass1' }); // created before the feature
-  const token = (await call('POST', '/api/auth/login', { body: { email: 'old@nitap.ac.in', password: 'oldpass1' } })).data.token;
+  const id = createUser(db, { name: 'Old', email: 'old@test.edu', password: 'oldpass1' }); // created before the feature
+  const token = (await call('POST', '/api/auth/login', { body: { email: 'old@test.edu', password: 'oldpass1' } })).data.token;
   assert.equal((await call('GET', '/api/me', { token })).data.security_set, false);
   assert.ok(id);
 
   // No question yet means no reset is possible for this account.
-  assert.equal((await call('POST', '/api/auth/reset-password', { body: { email: 'old@nitap.ac.in', answer: 'x', password: 'brandnew1' } })).status, 400);
+  assert.equal((await call('POST', '/api/auth/reset-password', { body: { email: 'old@test.edu', answer: 'x', password: 'brandnew1' } })).status, 400);
 
   const put = (body) => call('PUT', '/api/me/security-question', { token, body });
   assert.equal((await put({ password: 'wrong-pass', question: QUESTION, answer: 'Rani' })).status, 403);
@@ -493,7 +463,7 @@ test('signed-in users can set a security question with their current password', 
   assert.equal((await put({ password: 'oldpass1', question: QUESTION, answer: 'Rani' })).status, 200);
   assert.equal((await call('GET', '/api/me', { token })).data.security_set, true);
   assert.equal((await call('PUT', '/api/me/security-question', { body: {} })).status, 401);
-  assert.equal((await call('POST', '/api/auth/reset-password', { body: { email: 'old@nitap.ac.in', answer: 'rani', password: 'brandnew1' } })).status, 200);
+  assert.equal((await call('POST', '/api/auth/reset-password', { body: { email: 'old@test.edu', answer: 'rani', password: 'brandnew1' } })).status, 200);
 });
 
 test('students rate urgency; the highest rating counts once and shows in the priority reasons', async () => {

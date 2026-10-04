@@ -3,8 +3,8 @@
 // demo shows genuine behaviour. Timestamps are shifted back so the dashboards have history.
 //
 //   npm run seed
-//   ADMIN_EMAIL=you@nitap.ac.in ADMIN_PASSWORD=choose-one npm run seed
-import { createUser, isInstituteEmail } from '../server/auth.js';
+//   ADMIN_EMAIL=you@college.edu ADMIN_PASSWORD=choose-one npm run seed
+import { createUser } from '../server/auth.js';
 import { SECURITY_QUESTIONS } from '../server/config.js';
 import { openDb } from '../server/db.js';
 import { updateIssue } from '../server/admin.js';
@@ -18,24 +18,20 @@ const ago = (days) => now - days * DAY;
 const db = openDb();
 // Every demo student and staff member answers their security question with "nitap".
 const security = { question: SECURITY_QUESTIONS[2], answer: 'nitap' };
-const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@nitap.ac.in').toLowerCase();
+const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@campusfix.local').toLowerCase();
 const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin1234';
 
-if (!isInstituteEmail(adminEmail)) {
-  console.error(`ADMIN_EMAIL must end in @nitap.ac.in, or the admin could not sign in (got ${adminEmail}).`);
-  process.exit(1);
-}
 if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(adminEmail)) {
   console.log(`Already seeded (${adminEmail} exists). Delete data/campusfix.db to start over.`);
   process.exit(0);
 }
 
 const admin = { id: createUser(db, { name: 'Campus Admin', email: adminEmail, password: adminPassword, role: 'admin' }), name: 'Campus Admin', role: 'admin' };
-const student = (name) => ({ id: createUser(db, { name, email: `${name.toLowerCase()}@nitap.ac.in`, password: 'student1234', security }), name });
+const student = (name) => ({ id: createUser(db, { name, email: `${name.toLowerCase()}@campusfix.local`, password: 'student1234', security }), name });
 const [asha, bimal, chen, divya, esha] = ['Asha', 'Bimal', 'Chen', 'Divya', 'Esha'].map(student);
 
 const staffMember = (name, department) => ({
-  id: createUser(db, { name, email: `${name.toLowerCase()}@nitap.ac.in`, password: 'staff1234', role: 'staff', department, security }),
+  id: createUser(db, { name, email: `${name.toLowerCase()}@campusfix.local`, password: 'staff1234', role: 'staff', department, security }),
   name,
 });
 const ramesh = staffMember('Ramesh', 'Electrical Maintenance');
@@ -81,4 +77,4 @@ updateIssue(db, admin, toilet, { status: 'awaiting_confirmation', note: 'Cleaned
 confirmFix(db, esha, toilet, ago(5));
 submitFeedback(db, esha, toilet, { rating: 2, comment: 'Cleaned, but the water supply failed again after two days.' }, ago(4.5));
 
-console.log(`Seeded.\n  Admin:   ${adminEmail} / ${process.env.ADMIN_PASSWORD ? '(your ADMIN_PASSWORD)' : adminPassword}\n  Student: asha@nitap.ac.in / student1234 (also bimal, chen, divya, esha)\n  Staff:   ramesh@nitap.ac.in / staff1234 (also priya, suresh, kavita, arun)`);
+console.log(`Seeded.\n  Admin:   ${adminEmail} / ${process.env.ADMIN_PASSWORD ? '(your ADMIN_PASSWORD)' : adminPassword}\n  Student: asha@campusfix.local / student1234 (also bimal, chen, divya, esha)\n  Staff:   ramesh@campusfix.local / staff1234 (also priya, suresh, kavita, arun)`);

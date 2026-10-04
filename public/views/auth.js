@@ -4,27 +4,6 @@ import { go, startSession } from '../router.js';
 import { t } from '../i18n.js';
 import { getMeta } from './shared.js';
 
-// Only institute addresses can sign in. The server enforces this too (EMAIL_DOMAIN in server/config.js);
-// checking here just tells the student straight away.
-const INSTITUTE_DOMAIN = '@nitap.ac.in';
-const WRONG_DOMAIN = 'Use your NIT Arunachal Pradesh email address (ending in @nitap.ac.in)';
-const isInstituteEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) && value.trim().toLowerCase().endsWith(INSTITUTE_DOMAIN);
-
-// An email box that says so as soon as the address is clearly not an institute one.
-function instituteEmailField(id) {
-  const input = h('input', { id, type: 'email', autocomplete: 'email', required: true, placeholder: `name${INSTITUTE_DOMAIN}`, 'aria-describedby': `${id}-hint` });
-  const hint = h('p', { class: 'hint', id: `${id}-hint` }, t('Only @nitap.ac.in email addresses can be used.'));
-  const check = () => {
-    const bad = input.value.includes('@') && !isInstituteEmail(input.value) && !INSTITUTE_DOMAIN.startsWith(input.value.slice(input.value.indexOf('@')).toLowerCase());
-    input.setAttribute('aria-invalid', bad ? 'true' : 'false');
-    hint.className = bad ? 'error' : 'hint';
-    hint.textContent = t(bad ? WRONG_DOMAIN : 'Only @nitap.ac.in email addresses can be used.');
-  };
-  input.addEventListener('input', check);
-  input.addEventListener('blur', () => { if (input.value && !isInstituteEmail(input.value)) { input.setAttribute('aria-invalid', 'true'); hint.className = 'error'; hint.textContent = t(WRONG_DOMAIN); } });
-  return { input, hint };
-}
-
 function signInCard() {
   let mode = 'login';
   const card = h('div', { class: 'card narrow' });
@@ -34,7 +13,7 @@ function signInCard() {
     const error = h('p', { class: 'error', role: 'alert' });
     const submit = h('button', { class: 'primary', type: 'submit' }, t(isLogin ? 'Sign in' : 'Create account'));
     const name = h('input', { id: 'name', autocomplete: 'name', required: true, minlength: 2 });
-    const { input: email, hint: emailHint } = instituteEmailField('email');
+    const email = h('input', { id: 'email', type: 'email', autocomplete: 'email', required: true });
     const password = h('input', {
       id: 'password', type: 'password', required: true, minlength: isLogin ? 1 : 6,
       autocomplete: isLogin ? 'current-password' : 'new-password',
@@ -51,7 +30,6 @@ function signInCard() {
       onsubmit: async (e) => {
         e.preventDefault();
         error.textContent = '';
-        if (!isInstituteEmail(email.value)) { error.textContent = t(WRONG_DOMAIN); email.focus(); return; }
         submit.disabled = true;
         try {
           const body = isLogin
@@ -65,7 +43,7 @@ function signInCard() {
       },
     },
     !isLogin && [h('label', { for: 'name' }, t('Full name')), name],
-    h('label', { for: 'email' }, t('Email')), email, emailHint,
+    h('label', { for: 'email' }, t('Email')), email,
     h('label', { for: 'password' }, t('Password')), password,
     !isLogin && h('p', { class: 'hint' }, t('At least 6 characters.')),
     !isLogin && [
@@ -120,7 +98,7 @@ export const authView = () => h('div', { class: 'auth-wrap' }, signInCard(), abo
 
 // Reset without email: answer the security question chosen at registration.
 export function forgotView() {
-  const { input: email, hint: emailHint } = instituteEmailField('ask-email');
+  const email = h('input', { id: 'ask-email', type: 'email', autocomplete: 'email', required: true });
   const askError = h('p', { class: 'error', role: 'alert' });
   const step = h('div', { 'aria-live': 'polite' });
 
@@ -160,14 +138,13 @@ export function forgotView() {
         onsubmit: async (e) => {
           e.preventDefault();
           askError.textContent = '';
-          if (!isInstituteEmail(email.value)) { askError.textContent = t(WRONG_DOMAIN); email.focus(); return; }
           try {
             const { question } = await api(`/auth/security-question?email=${encodeURIComponent(email.value)}`);
             showQuestion(question);
           } catch (err) { askError.textContent = err.message; }
         },
       },
-      h('label', { for: 'ask-email' }, t('Your account email')), email, emailHint, askError,
+      h('label', { for: 'ask-email' }, t('Your account email')), email, askError,
       h('div', { class: 'row', style: 'margin-top:1rem' }, h('button', { class: 'primary', type: 'submit' }, t('Show my question')))),
       step),
     h('p', {}, h('a', { href: '#/login' }, t('< Back to sign in'))));

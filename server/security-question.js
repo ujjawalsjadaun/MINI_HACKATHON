@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { SECURITY_QUESTIONS } from './config.js';
-import { authenticate, createLoginThrottle, hashPassword, normalizeAnswer, requireInstituteEmail, setSecurityQuestion, validateSecurity, verifyPassword } from './auth.js';
+import { authenticate, createLoginThrottle, hashPassword, normalizeAnswer, setSecurityQuestion, validateSecurity, verifyPassword } from './auth.js';
 import { HttpError, requireString, wrap } from './http.js';
 
 // A fixed salt and hash to check against when the account cannot be reset this way, so a missing
@@ -22,12 +22,12 @@ export function securityQuestionRoutes(db, router) {
   const resettable = (email) => db.prepare("SELECT id, security_question, security_hash, security_salt FROM users WHERE email = ? AND role != 'admin' AND security_hash IS NOT NULL").get(email);
 
   router.get('/auth/security-question', wrap((req, res) => {
-    const email = requireInstituteEmail(req.query.email);
+    const email = requireString(req.query.email, 'Email', { max: 120 }).toLowerCase();
     res.json({ question: resettable(email)?.security_question ?? decoyQuestion(email) });
   }));
 
   router.post('/auth/reset-password', wrap((req, res) => {
-    const email = requireInstituteEmail(req.body?.email);
+    const email = requireString(req.body?.email, 'Email', { max: 120 }).toLowerCase();
     const answer = requireString(req.body?.answer, 'Answer', { max: 100 });
     const password = requireString(req.body?.password, 'New password', { min: 6, max: 100 });
     if (byEmail.isLocked(email) || byIp.isLocked(req.ip)) throw new HttpError(429, 'Too many wrong answers. Try again in a few minutes.');
