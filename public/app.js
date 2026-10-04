@@ -2,6 +2,7 @@ import { api, session } from './api.js';
 import { h, toast } from './dom.js';
 import { go, homeFor, matchRoute } from './router.js';
 import { authView } from './views/auth.js';
+import './views/issues.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
