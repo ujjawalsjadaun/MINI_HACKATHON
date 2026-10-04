@@ -1,11 +1,12 @@
-import { api } from '../api.js';
+import { api, session } from '../api.js';
 import { badge, formatDate, h, toast } from '../dom.js';
 import { go, route } from '../router.js';
 import { categoryLabel, emptyState, getMeta, issueCard, timeline } from './shared.js';
 
 const option = (value, text, selected) => h('option', { value, selected: selected ? true : null }, text);
 
-route('/admin', ['admin'], async () => {
+route('/admin', ['admin', 'staff'], async () => {
+  const isStaff = session.user.role === 'staff';
   const m = await getMeta(api);
   const params = new URLSearchParams(location.hash.split('?')[1] ?? '');
   const filters = { status: params.get('status') ?? 'active', category: params.get('category') ?? '', location: params.get('location') ?? '' };
@@ -24,7 +25,7 @@ route('/admin', ['admin'], async () => {
   const critical = issues.filter((i) => i.priority.label === 'critical').length;
   return h('section', {},
     h('div', { class: 'row between' },
-      h('h1', {}, 'Issue queue'),
+      h('h1', {}, isStaff ? 'My assigned issues' : 'Issue queue'),
       h('p', { class: 'muted' }, `${issues.length} issue${issues.length === 1 ? '' : 's'}${critical ? `, ${critical} critical` : ''} - most urgent first`)),
     h('div', { class: 'filters' },
       filter('f-status', 'Status', 'status', [
@@ -44,8 +45,9 @@ route('/admin', ['admin'], async () => {
       : emptyState('No issues match', 'Try a different filter.'));
 });
 
-route('/admin/issue/:id', ['admin'], async ({ id }) => {
-  const [m, detail] = await Promise.all([getMeta(api), api(`/issues/${id}`)]);
+route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
+  const isAdmin = session.user.role === 'admin';
+  const [m, detail, staff] = await Promise.all([getMeta(api), api(`/issues/${id}`), isAdmin ? api('/staff') : []]);
   const { issue, reports, log } = detail;
 
   // Teams cannot close an issue themselves: only a reporter's confirmation resolves it.
@@ -53,7 +55,11 @@ route('/admin/issue/:id', ['admin'], async ({ id }) => {
   const status = h('select', { id: 'status' }, m.statuses
     .filter((s) => s !== 'resolved' || issue.status === 'resolved')
     .map((s) => option(s, statusText[s] ?? s.replace(/_/g, ' '), issue.status === s)));
-  const assignee = h('input', { id: 'assignee', maxlength: 80, value: issue.assigned_to ?? '', placeholder: `e.g. a technician from ${issue.department}` });
+  // Admins assign to a named staff member (own department first); staff see who it is assigned to.
+  const byDept = [...staff].sort((a, b) => (b.department === issue.department) - (a.department === issue.department));
+  const assignee = h('select', { id: 'assignee' },
+    h('option', { value: '' }, 'Unassigned'),
+    byDept.map((s) => h('option', { value: s.id, selected: s.name === issue.assigned_to ? true : null }, `${s.name} (${s.department})`)));
   const note = h('textarea', { id: 'note', maxlength: 300, placeholder: 'Visible to students on the progress timeline' });
   const error = h('p', { class: 'error', role: 'alert' });
   const save = h('button', { class: 'primary', type: 'submit' }, 'Save update');
@@ -64,8 +70,11 @@ route('/admin/issue/:id', ['admin'], async ({ id }) => {
       error.textContent = '';
       save.disabled = true;
       try {
-        const body = { status: status.value, assigned_to: assignee.value, note: note.value };
+        const body = { status: status.value, note: note.value };
         if (status.value === issue.status) delete body.status;
+        if (isAdmin && (assignee.value === '' ? null : Number(assignee.value)) !== (staff.find((s) => s.name === issue.assigned_to)?.id ?? null)) {
+          body.assignee_id = assignee.value === '' ? null : Number(assignee.value);
+        }
         await api(`/issues/${id}`, { method: 'PATCH', body });
         toast('Issue updated. Students can see the new status.');
         go(`/admin/issue/${id}`);
@@ -76,7 +85,8 @@ route('/admin/issue/:id', ['admin'], async ({ id }) => {
     },
   },
   h('label', { for: 'status' }, 'Status'), status,
-  h('label', { for: 'assignee' }, 'Assigned to'), assignee,
+  h('label', { for: 'assignee' }, 'Assigned to'),
+  isAdmin ? assignee : h('p', {}, issue.assigned_to ?? 'Unassigned'),
   h('label', { for: 'note' }, 'Note (optional)'), note,
   error,
   h('div', { class: 'row', style: 'margin-top:1rem' }, save));
@@ -97,10 +107,10 @@ route('/admin/issue/:id', ['admin'], async ({ id }) => {
     h('div', { class: 'card reports' },
       h('h2', {}, `${reports.length} report${reports.length === 1 ? '' : 's'} grouped into this issue`),
       reports.map((r) => h('div', { style: 'border-top:1px solid var(--border);padding:.75rem 0' },
-        h('strong', {}, r.reporter), ' ', h('span', { class: 'hint' }, formatDate(r.created_at)),
+        h('strong', {}, r.reporter ?? 'Student'), ' ', h('span', { class: 'hint' }, formatDate(r.created_at)),
         h('p', {}, r.description),
         r.match_reason && h('p', { class: 'hint' }, `Auto-grouped: ${r.match_reason}`),
-        r.photo && h('a', { href: r.photo, target: '_blank', rel: 'noopener' }, h('img', { class: 'photo', src: r.photo, alt: `Photo from ${r.reporter}` }))))),
+        r.photo && h('a', { href: r.photo, target: '_blank', rel: 'noopener' }, h('img', { class: 'photo', src: r.photo, alt: `Photo from ${r.reporter ?? 'a student'}` }))))),
     issue.reopen_count > 0 && h('p', { class: 'hint' }, `Reopened ${issue.reopen_count} time${issue.reopen_count === 1 ? '' : 's'} after a claimed fix.`),
     issue.status === 'resolved' && badge('resolved', 'status-resolved'));
 });

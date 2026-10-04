@@ -16,7 +16,7 @@ export function go(path) {
 // Hash path without its query string, e.g. '#/admin?status=open' -> '/admin'.
 export const currentPath = () => (location.hash.slice(1) || '/').split('?')[0];
 
-export const homeFor = (user) => (user.role === 'admin' ? '/admin' : '/report');
+export const homeFor = (user) => (user.role === 'student' ? '/report' : '/admin');
 
 // A QR scan while signed out must survive the sign-in step.
 const NEXT_KEY = 'campusfix.next';
