@@ -15,7 +15,7 @@ const KEYWORDS = {
   hostel: ['hostel', 'mess', 'warden', 'geyser', 'mattress', 'wardrobe', 'cot', 'curtain', 'laundry'],
   furniture: ['desk', 'bench', 'chair', 'table', 'door', 'window', 'glass', 'crack', 'wall', 'ceiling', 'roof', 'lock', 'hinge', 'handle', 'stair', 'railing'],
 };
-const HOSTEL_PLACES = new Set(['Shubhasani', 'Lohit-1', 'Lohit-2', 'Papum']);
+const HOSTEL_PLACES = new Set(['Subansiri', 'Lohit-1', 'Lohit-2', 'Papum']);
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const matches = (text, words) => words.filter((w) => new RegExp(`(^|[^a-z])${escapeRegExp(w)}`, 'i').test(text));

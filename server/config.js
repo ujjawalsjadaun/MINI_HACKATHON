@@ -27,7 +27,7 @@ export const CAMPUS = [
   },
   {
     group: 'Hostels',
-    places: [place('Shubhasani', FLOORS_3), place('Lohit-2', FLOORS_4), place('Lohit-1', FLOORS_4), place('Papum', FLOORS_4)],
+    places: [place('Subansiri', FLOORS_3), place('Lohit-2', FLOORS_4), place('Lohit-1', FLOORS_4), place('Papum', FLOORS_4)],
   },
   { group: 'Faculty Residence', places: [place('Faculty Residence')] },
   {

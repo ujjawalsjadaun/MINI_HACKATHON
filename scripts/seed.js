@@ -66,7 +66,7 @@ updateIssue(db, admin, wifi, { status: 'in_progress', assignee_id: priya.id, not
 const projector = report(bimal, 'classroom', 'B-III', 'Projector not working in room 204', 5, 'Room 204');
 updateIssue(db, admin, projector, { status: 'awaiting_confirmation', assignee_id: arun.id, note: 'Lamp replaced' }, ago(0.3));
 report(chen, 'furniture', 'B-III', 'Broken desk and loose bench in the seminar hall', 0.5);
-const toilet = report(esha, 'sanitation', 'Shubhasani', 'Washroom very dirty and no water for cleaning', 6);
+const toilet = report(esha, 'sanitation', 'Subansiri', 'Washroom very dirty and no water for cleaning', 6);
 updateIssue(db, admin, toilet, { status: 'awaiting_confirmation', note: 'Cleaned and water supply restored' }, ago(5.2));
 confirmFix(db, esha, toilet, ago(5));
 

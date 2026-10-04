@@ -340,7 +340,7 @@ test('meta serves the NIT Arunachal Pradesh campus map and rejects unknown place
   const { data } = await call('GET', '/api/meta');
   assert.deepEqual(data.campus.map((g) => g.group), ['Blocks', 'Hostels', 'Faculty Residence', 'Other Residence & Facilities']);
   assert.equal(data.locations.length, 17);
-  for (const name of ['B-I', 'B-IV', 'Central Library', 'Administrative Building', 'Shubhasani', 'Lohit-1', 'Lohit-2', 'Papum', 'Hospital', 'K.V']) {
+  for (const name of ['B-I', 'B-IV', 'Central Library', 'Administrative Building', 'Subansiri', 'Lohit-1', 'Lohit-2', 'Papum', 'Hospital', 'K.V']) {
     assert.ok(data.locations.includes(name), name);
   }
   const s = await signup('Meera');
