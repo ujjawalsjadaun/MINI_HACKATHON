@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { authRoutes } from './auth.js';
 import { CATEGORIES, LOCATIONS, STATUSES } from './config.js';
 import { HttpError } from './http.js';
+import { issueRoutes } from './issue-routes.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -23,6 +24,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads') } = {}) {
     });
   });
   authRoutes(db, api);
+  issueRoutes(db, api, { uploadDir });
 
   app.use('/api', api);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
