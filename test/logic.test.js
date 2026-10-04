@@ -54,3 +54,10 @@ test('different rooms in the same block never merge; same room or unknown room d
   assert.equal(findDuplicate(db, { ...probe, detail: 'cs 101' }).length, 1);
   assert.equal(findDuplicate(db, { ...probe, detail: '' }).length, 1);
 });
+
+test('a reopened issue ranks higher than one that was never reopened', () => {
+  const base = { category: 'electrical', description: 'fan stopped', reportCount: 1, createdAt: Date.now(), status: 'open' };
+  const reopened = priorityOf({ ...base, reopenCount: 1 });
+  assert.ok(reopened.score > priorityOf(base).score);
+  assert.ok(reopened.reasons.some((r) => /reopened/.test(r)));
+});

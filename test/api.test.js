@@ -36,11 +36,22 @@ async function call(method, url, { token, body, form } = {}) {
   return { status: res.status, data: text ? JSON.parse(text) : null };
 }
 
+const tokens = {};
 async function signup(name) {
   const { data } = await call('POST', '/api/auth/register', {
     body: { name, email: `${name.toLowerCase()}@test.edu`, password: 'secret123' },
   });
+  tokens[name] = data.token;
   return data.token;
+}
+
+const adminLogin = async () =>
+  (await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } })).data.token;
+
+// The only way to close an issue: the team marks it fixed, then a reporter confirms.
+async function resolveIssue(adminToken, issueId, reporterToken) {
+  await call('PATCH', `/api/issues/${issueId}`, { token: adminToken, body: { status: 'awaiting_confirmation' } });
+  await call('POST', `/api/issues/${issueId}/confirm`, { token: reporterToken });
 }
 
 const report = (token, description, extra = {}) => {
@@ -156,13 +167,20 @@ test('only admins can update issues; updates land on the student-visible timelin
 
   const assigned = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { assigned_to: 'Ramesh (plumber)' } });
   assert.equal(assigned.data.issue.status, 'assigned');
-  const done = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'resolved', note: 'Pipe replaced' } });
-  assert.equal(done.data.issue.status, 'resolved');
-  assert.ok(done.data.issue.resolved_at);
+  // The team cannot close it themselves.
+  assert.equal((await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'resolved' } })).status, 400);
+  const fixed = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'awaiting_confirmation', note: 'Pipe replaced' } });
+  assert.equal(fixed.data.issue.status, 'awaiting_confirmation');
+
+  const seen = await call('GET', `/api/issues/${id}`, { token: student });
+  assert.equal(seen.data.can_confirm, true);
+  assert.equal((await call('POST', `/api/issues/${id}/confirm`, { token: student })).status, 200);
 
   const { data } = await call('GET', `/api/issues/${id}`, { token: student });
-  assert.deepEqual(data.log.map((l) => l.status), ['open', 'assigned', 'resolved']);
-  assert.match(data.log.at(-1).note, /Pipe replaced/);
+  assert.equal(data.issue.status, 'resolved');
+  assert.ok(data.issue.resolved_at);
+  assert.deepEqual(data.log.map((l) => l.status), ['open', 'assigned', 'awaiting_confirmation', 'resolved']);
+  assert.match(data.log[2].note, /Pipe replaced/);
 });
 
 test('insights are admin-only and report merged duplicates and recurring problems', async () => {
@@ -172,7 +190,7 @@ test('insights are admin-only and report merged duplicates and recurring problem
   const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } });
   // A second electrical issue at CS Block, after the first is resolved, marks the spot as recurring.
   const { data: issues } = await call('GET', '/api/issues?location=CS%20Block&category=electrical', { token: admin.token });
-  await call('PATCH', `/api/issues/${issues[0].id}`, { token: admin.token, body: { status: 'resolved' } });
+  await resolveIssue(admin.token, issues[0].id, tokens.Asha);
   const again = await report(student, 'Tube light broken near the entrance', { location: 'CS Block' });
   assert.equal(again.data.merged, false);
 
@@ -202,4 +220,38 @@ test('QR endpoint renders an SVG for report links and rejects anything else', as
   assert.match(await ok.text(), /<svg/);
   assert.equal((await fetch(`${base}/api/qr?data=javascript:alert(1)`)).status, 400);
   assert.equal((await fetch(`${base}/api/qr`)).status, 400);
+});
+
+test('only a reporter can confirm or reopen, and new evidence reopens automatically', async () => {
+  const [p, q, r] = await Promise.all(['Priya', 'Qadir', 'Rohan'].map(signup));
+  const admin = await adminLogin();
+  const id = (await report(p, 'Ceiling fan makes loud noise and stopped', { category: 'electrical', location: 'Sports Complex' })).data.issueId;
+  const fix = () => call('PATCH', `/api/issues/${id}`, { token: admin, body: { status: 'awaiting_confirmation' } });
+  const detail = async () => (await call('GET', `/api/issues/${id}`, { token: admin })).data;
+
+  // Cannot confirm before the team claims a fix, and bystanders can never confirm.
+  assert.equal((await call('POST', `/api/issues/${id}/confirm`, { token: p })).status, 409);
+  await fix();
+  assert.equal((await call('POST', `/api/issues/${id}/confirm`, { token: q })).status, 403);
+  assert.equal((await call('POST', `/api/issues/${id}/confirm`, { token: admin })).status, 403);
+
+  // The reporter says it is not fixed.
+  assert.equal((await call('POST', `/api/issues/${id}/reopen`, { token: p, body: { note: 'Still broken' } })).status, 200);
+  let d = await detail();
+  assert.equal(d.issue.status, 'open');
+  assert.equal(d.issue.reopen_count, 1);
+  assert.ok(d.issue.priority.reasons.some((x) => /reopened/.test(x)));
+
+  // A claimed fix followed by a new "me too" means the problem is evidently still there.
+  await fix();
+  assert.equal((await call('POST', `/api/issues/${id}/me-too`, { token: r })).status, 201);
+  d = await detail();
+  assert.equal(d.issue.status, 'open');
+  assert.equal(d.issue.reopen_count, 2);
+
+  // Finally fixed and confirmed; it cannot be confirmed twice.
+  await fix();
+  assert.equal((await call('POST', `/api/issues/${id}/confirm`, { token: p })).status, 200);
+  assert.equal((await detail()).issue.status, 'resolved');
+  assert.equal((await call('POST', `/api/issues/${id}/confirm`, { token: p })).status, 409);
 });

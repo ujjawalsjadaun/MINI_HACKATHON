@@ -5,7 +5,7 @@ import { updateIssue } from './admin.js';
 import { authenticate, requireAdmin } from './auth.js';
 import { MAX_PHOTO_BYTES } from './config.js';
 import { HttpError, wrap } from './http.js';
-import { addMeToo, getIssueDetail, listIssues, nearbyIssues, submitReport, validateReportInput } from './issues.js';
+import { addMeToo, confirmFix, getIssueDetail, listIssues, nearbyIssues, rejectFix, submitReport, validateReportInput } from './issues.js';
 
 const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
@@ -68,6 +68,16 @@ export function issueRoutes(db, router, { uploadDir }) {
   router.post('/issues/:id/me-too', auth, wrap((req, res) => {
     addMeToo(db, req.user, idParam(req));
     res.status(201).json({ ok: true });
+  }));
+
+  router.post('/issues/:id/confirm', auth, wrap((req, res) => {
+    confirmFix(db, req.user, idParam(req));
+    res.json({ ok: true });
+  }));
+
+  router.post('/issues/:id/reopen', auth, wrap((req, res) => {
+    rejectFix(db, req.user, idParam(req), req.body?.note);
+    res.json({ ok: true });
   }));
 
   router.get('/issues', auth, wrap((req, res) => {

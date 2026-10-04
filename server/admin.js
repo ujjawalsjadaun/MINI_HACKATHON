@@ -10,6 +10,9 @@ export function updateIssue(db, admin, issueId, body = {}, now = Date.now()) {
 
     let { status } = body;
     if (status !== undefined && !STATUSES.includes(status)) throw new HttpError(400, 'Unknown status');
+    if (status === 'resolved' && issue.status !== 'resolved') {
+      throw new HttpError(400, 'Only a reporter can confirm a fix. Mark it as awaiting confirmation instead.');
+    }
 
     let assignedTo = issue.assigned_to;
     if (body.assigned_to !== undefined) {

@@ -23,8 +23,9 @@ export const LOCATIONS = [
   'Campus Road / Outdoor',
 ];
 
-export const STATUSES = ['open', 'assigned', 'in_progress', 'resolved'];
-export const ACTIVE_STATUSES = ['open', 'assigned', 'in_progress'];
+// A team can only move an issue to awaiting_confirmation; a reporter confirms it into resolved.
+export const STATUSES = ['open', 'assigned', 'in_progress', 'awaiting_confirmation', 'resolved'];
+export const ACTIVE_STATUSES = ['open', 'assigned', 'in_progress', 'awaiting_confirmation'];
 
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;

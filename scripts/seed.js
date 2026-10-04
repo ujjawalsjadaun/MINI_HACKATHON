@@ -7,7 +7,7 @@
 import { createUser } from '../server/auth.js';
 import { openDb } from '../server/db.js';
 import { updateIssue } from '../server/admin.js';
-import { addMeToo, submitReport } from '../server/issues.js';
+import { addMeToo, confirmFix, submitReport } from '../server/issues.js';
 
 const DAY = 86_400_000;
 const now = Date.now();
@@ -32,7 +32,8 @@ const report = (user, category, location, description, days, detail = '') =>
 // An old CS Block light fault, fixed - so the same fault returning shows up as "recurring".
 const oldLight = report(chen, 'electrical', 'CS Block', 'Tube light broken in the lab corridor', 12);
 updateIssue(db, admin, oldLight, { assigned_to: 'Ramesh (electrician)' }, ago(11));
-updateIssue(db, admin, oldLight, { status: 'resolved', note: 'Tube replaced' }, ago(10));
+updateIssue(db, admin, oldLight, { status: 'awaiting_confirmation', note: 'Tube replaced' }, ago(10.5));
+confirmFix(db, chen, oldLight, ago(10));
 
 // The headline scenario: three students, one underlying issue.
 const light = report(asha, 'electrical', 'CS Block', 'Tube light broken near the entrance', 4, 'Ground floor');
@@ -45,9 +46,12 @@ const wifi = report(esha, 'wifi', 'Library', 'Wifi not working on the first floo
 report(asha, 'wifi', 'Library', 'Internet is down near the reading area', 1);
 updateIssue(db, admin, wifi, { status: 'in_progress', assigned_to: 'IT helpdesk', note: 'Access point being replaced' }, ago(1));
 
-report(bimal, 'classroom', 'Academic Block', 'Projector not working in room 204', 5, 'Room 204');
+// Waiting on its reporter: sign in as Bimal to see the confirm / reopen prompt.
+const projector = report(bimal, 'classroom', 'Academic Block', 'Projector not working in room 204', 5, 'Room 204');
+updateIssue(db, admin, projector, { status: 'awaiting_confirmation', assigned_to: 'AV technician', note: 'Lamp replaced' }, ago(0.3));
 report(chen, 'furniture', 'Academic Block', 'Broken desk and loose bench in the seminar hall', 0.5);
 const toilet = report(esha, 'sanitation', 'Girls Hostel', 'Washroom very dirty and no water for cleaning', 6);
-updateIssue(db, admin, toilet, { status: 'resolved', note: 'Cleaned and water supply restored' }, ago(5));
+updateIssue(db, admin, toilet, { status: 'awaiting_confirmation', note: 'Cleaned and water supply restored' }, ago(5.2));
+confirmFix(db, esha, toilet, ago(5));
 
 console.log(`Seeded.\n  Admin:   ${adminEmail} / ${process.env.ADMIN_PASSWORD ? '(your ADMIN_PASSWORD)' : adminPassword}\n  Student: asha@campusfix.local / student1234 (also bimal, chen, divya, esha)`);

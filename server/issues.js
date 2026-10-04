@@ -17,6 +17,7 @@ function withPriority(row, now = Date.now()) {
       reportCount: row.report_count,
       createdAt: row.created_at,
       status: row.status,
+      reopenCount: row.reopen_count,
     }, now),
   };
 }
@@ -68,6 +69,44 @@ export function nearbyIssues(db, { location, category = '', detail = '', descrip
     .map(({ rank, ...issue }) => issue);
 }
 
+// A team claiming a fix is only a claim. New evidence that the problem persists reopens it.
+function reopenIfAwaiting(db, issueId, note, now) {
+  const issue = db.prepare('SELECT status, assigned_to FROM issues WHERE id = ?').get(issueId);
+  if (issue.status !== 'awaiting_confirmation') return false;
+  const next = issue.assigned_to ? 'assigned' : 'open';
+  db.prepare('UPDATE issues SET status = ?, reopen_count = reopen_count + 1, resolved_at = NULL, updated_at = ? WHERE id = ?').run(next, now, issueId);
+  db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(issueId, next, `Reopened: ${note}`, 'reporter', now);
+  return true;
+}
+
+function requireReporterOfAwaitingIssue(db, user, issueId) {
+  const issue = db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
+  if (!issue) throw new HttpError(404, 'Issue not found');
+  if (!db.prepare('SELECT 1 FROM reports WHERE issue_id = ? AND user_id = ?').get(issueId, user.id)) {
+    throw new HttpError(403, 'Only students who reported this issue can confirm or reopen it');
+  }
+  if (issue.status !== 'awaiting_confirmation') throw new HttpError(409, 'This issue is not waiting for confirmation');
+}
+
+// Nobody closes a ticket for the reporters: one of them confirms the fix really happened.
+export function confirmFix(db, user, issueId, now = Date.now()) {
+  return transaction(db, () => {
+    requireReporterOfAwaitingIssue(db, user, issueId);
+    db.prepare("UPDATE issues SET status = 'resolved', resolved_at = ?, updated_at = ? WHERE id = ?").run(now, now, issueId);
+    db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(issueId, 'resolved', 'Fix confirmed by a reporter', 'reporter', now);
+  });
+}
+
+export function rejectFix(db, user, issueId, note = '', now = Date.now()) {
+  return transaction(db, () => {
+    requireReporterOfAwaitingIssue(db, user, issueId);
+    const reason = typeof note === 'string' && note.trim() ? note.trim().slice(0, 300) : 'Reporter says it is not fixed';
+    reopenIfAwaiting(db, issueId, reason, now);
+  });
+}
+
 // Either merges the report into an existing active issue or opens a new one.
 export function submitReport(db, user, input, photo, now = Date.now()) {
   return transaction(db, () => {
@@ -81,6 +120,7 @@ export function submitReport(db, user, input, photo, now = Date.now()) {
       db.prepare('INSERT INTO reports (issue_id, user_id, description, photo, match_reason, created_at) VALUES (?, ?, ?, ?, ?, ?)')
         .run(issueId, user.id, input.description, photo, reason, now);
       db.prepare('UPDATE issues SET updated_at = ? WHERE id = ?').run(now, issueId);
+      reopenIfAwaiting(db, issueId, 'A new report came in after the fix was claimed', now);
       return { issueId, merged: true, reason };
     }
 
@@ -111,6 +151,7 @@ export function addMeToo(db, user, issueId, now = Date.now()) {
     db.prepare('INSERT INTO reports (issue_id, user_id, description, match_reason, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(issueId, user.id, 'Confirmed by another student (me too)', 'Confirmed via me too', now);
     db.prepare('UPDATE issues SET updated_at = ? WHERE id = ?').run(now, issueId);
+    reopenIfAwaiting(db, issueId, 'Another student says the problem is still there', now);
   });
 }
 
@@ -145,5 +186,11 @@ export function getIssueDetail(db, id, viewer) {
       reporter: isAdmin ? r.reporter : undefined,
     }));
   const log = db.prepare('SELECT status, note, actor, created_at FROM status_log WHERE issue_id = ? ORDER BY id').all(id);
-  return { issue: withPriority(row), reports: isAdmin ? reports : reports.filter((r) => r.mine), log };
+  const isReporter = reports.some((r) => r.mine);
+  return {
+    issue: withPriority(row),
+    reports: isAdmin ? reports : reports.filter((r) => r.mine),
+    log,
+    can_confirm: row.status === 'awaiting_confirmation' && isReporter,
+  };
 }

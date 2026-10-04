@@ -28,11 +28,12 @@ CREATE TABLE IF NOT EXISTS issues (
   detail TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL,
   department TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'assigned', 'in_progress', 'resolved')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'assigned', 'in_progress', 'awaiting_confirmation', 'resolved')),
   assigned_to TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  resolved_at INTEGER
+  resolved_at INTEGER,
+  reopen_count INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_issues_match ON issues(category, location, status);
 
