@@ -242,3 +242,13 @@ nav .lang.push { margin-left: auto; }
 .feed-bar select { width: auto; min-width: 12rem; }
 .feed-group { margin-top: 1.25rem; }
 .feed-group > h2 { display: flex; align-items: center; gap: .5rem; border-bottom: 2px solid var(--accent); padding-bottom: .25rem; }
+
+/* Emergency contacts */
+.emergency-box { border-left-color: var(--critical); background: color-mix(in srgb, var(--critical) 9%, var(--surface)); }
+.contacts { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.contacts li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem .75rem; padding: .45rem 0; border-top: 1px solid var(--border); }
+.contacts li:first-child { border-top: 0; }
+.contacts .numbers { display: flex; flex-wrap: wrap; gap: .4rem; }
+a.button.call { padding: .3rem .8rem; font-family: ui-monospace, Consolas, monospace; letter-spacing: .03em; }
+nav a[href="#/emergency"] { color: #ffc9c2; }
+@media print { .contacts li { break-inside: avoid; } a.button.call { border: 0; padding: 0; color: #000; } }

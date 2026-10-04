@@ -4,7 +4,7 @@ import { authenticate } from './auth.js';
 // Public emergency numbers that are safe to ship with the code. The institute's own directory (names and
 // personal mobile numbers of doctors, nurses, drivers and staff) is NOT in the repository: it is read from a
 // git-ignored file, private/emergency-contacts.json, and only ever sent to signed-in users. See the README.
-const PUBLIC_GROUPS = [{
+export const PUBLIC_GROUPS = [{
   group: 'Public emergency services',
   entries: [
     { role: 'National emergency number', name: 'Police, fire and ambulance', phones: ['112'], tags: ['emergency', 'police', 'fire', 'medical'] },

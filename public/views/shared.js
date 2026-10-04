@@ -104,3 +104,37 @@ export function feedbackCard(feedback) {
       ]
       : h('p', { class: 'muted' }, t('No feedback yet.')));
 }
+
+// ---- Emergency directory (names and numbers come from the server; see server/emergency.js)
+let emergency;
+export async function getEmergency(api) {
+  emergency ??= await api('/emergency').catch(() => ({ groups: [], configured: false }));
+  return emergency;
+}
+
+const phoneHref = (phone) => `tel:${phone.replace(/[^\d+]/g, '')}`;
+
+// Entries of the directory carrying at least one of the given tags, with a number to call.
+export function contactsWith(directory, tags) {
+  const wanted = new Set(tags);
+  return directory.groups.flatMap((g) => g.entries).filter((e) => e.phones.length && e.tags.some((x) => wanted.has(x)));
+}
+
+// Which kinds of help fit a situation: building problems call the engineering cell, hostel problems the hostel
+// office, and an emergency anything tagged as such (doctors, ambulance, security, police and fire).
+export function helpTags({ category, hostel, emergency: urgent }) {
+  const tags = [];
+  if (urgent) tags.push('emergency');
+  if (['electrical', 'water', 'furniture'].includes(category)) tags.push('engineering');
+  if (hostel || category === 'hostel') tags.push('hostel');
+  return tags;
+}
+
+export const isHostelPlace = (meta, place) => meta.campus.some((g) => g.group === 'Hostels' && g.places.some((p) => p.name === place));
+
+// A list of people to call, each number a tap-to-call link.
+export function contactList(entries) {
+  return h('ul', { class: 'contacts' }, entries.map((e) => h('li', {},
+    h('span', { class: 'who-to-call' }, h('strong', {}, t(e.role)), e.name && ` - ${t(e.name)}`),
+    h('span', { class: 'numbers' }, e.phones.map((p) => h('a', { class: 'button call', href: phoneHref(p) }, p))))));
+}

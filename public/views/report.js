@@ -4,7 +4,7 @@ import { t } from '../i18n.js';
 import { go, route } from '../router.js';
 import { campusMap } from './campus-map.js';
 import { placePicker } from './place-picker.js';
-import { getMeta } from './shared.js';
+import { contactList, contactsWith, getEmergency, getMeta, helpTags, isHostelPlace } from './shared.js';
 
 const MAX_PHOTO = 5 * 1024 * 1024;
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -20,7 +20,9 @@ route('/report', ['student'], async () => {
   const category = select('category', m.categories.map((c) => [c.key, t(c.label)]), t('Choose a category'));
   let checkNearby = () => {};
   let map;
-  const picker = placePicker(m.campus, { onChange: () => { checkNearby(); map?.setPlace(picker.place); } });
+  let directory = { groups: [] };
+  const help = h('div', { 'aria-live': 'polite' });
+  const picker = placePicker(m.campus, { onChange: () => { checkNearby(); map?.setPlace(picker.place); drawHelp(); } });
 
   // Optional: tap the schematic map to drop a pin on the exact spot (tapping a building also picks the place).
   const pinNote = h('p', { class: 'hint', 'aria-live': 'polite' });
@@ -43,7 +45,7 @@ route('/report', ['student'], async () => {
   let urgency = 'normal';
   const urgencyBox = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': t('How urgent is it?') });
   const drawUrgency = () => urgencyBox.replaceChildren(...m.urgencies.map((u) => h('label', { class: `chip urgency-${u.key}${u.key === urgency ? ' on' : ''}` },
-    h('input', { type: 'radio', name: 'urgency', value: u.key, checked: u.key === urgency, onchange: () => { urgency = u.key; drawUrgency(); } }),
+    h('input', { type: 'radio', name: 'urgency', value: u.key, checked: u.key === urgency, onchange: () => { urgency = u.key; drawUrgency(); drawHelp(); } }),
     URGENCY_TEXT[u.key][0], h('small', {}, URGENCY_TEXT[u.key][1]))));
   drawUrgency();
   const aiBox = h('div', { 'aria-live': 'polite' });
@@ -92,7 +94,27 @@ route('/report', ['student'], async () => {
         }, t('Me too, this is mine'))))));
   }
 
-  for (const el of [category, description, detail]) el.addEventListener('input', checkNearby);
+  // Who to call: an emergency rating shows the emergency numbers at once, and hostel problems the hostel office.
+  function drawHelp() {
+    const hostel = isHostelPlace(m, picker.place) || category.value === 'hostel';
+    const boxes = [];
+    if (urgency === 'emergency') {
+      const entries = contactsWith(directory, helpTags({ category: category.value, hostel: false, emergency: true }));
+      boxes.push(h('div', { class: 'notice emergency-box', role: 'alert' },
+        h('strong', {}, t('Someone in danger? Call for help first.')),
+        h('p', { class: 'hint' }, t('This report goes to the maintenance team and may not be read right away. For danger to life, fire or serious injury, call 112 or these contacts now.')),
+        contactList(entries),
+        h('p', {}, h('a', { href: '#/emergency' }, t('All emergency contacts')))));
+    }
+    if (hostel) {
+      const entries = contactsWith(directory, ['hostel']);
+      if (entries.length) boxes.push(h('div', { class: 'notice' }, h('strong', {}, t('Hostel contacts')), h('p', { class: 'hint' }, t('Need the hostel office? These contacts can help.')), contactList(entries)));
+    }
+    help.replaceChildren(...boxes);
+  }
+  getEmergency(api).then((d) => { directory = d; drawHelp(); });
+
+  for (const el of [category, description, detail]) el.addEventListener('input', () => { checkNearby(); if (el === category) drawHelp(); });
   checkNearby();
 
   // Suggestion helper: suggests a category and a clearer description. The student decides what to use.
@@ -116,6 +138,7 @@ route('/report', ['student'], async () => {
             category.value = s.category;
             description.value = s.description;
             if (s.urgent) { urgency = 'emergency'; drawUrgency(); }
+            drawHelp();
             aiBox.replaceChildren();
             checkNearby();
             toast(t('Suggestion applied. Check it before you submit.'));
@@ -172,6 +195,7 @@ route('/report', ['student'], async () => {
   aiEnabled && aiBox,
   h('span', { class: 'field-label' }, t('How urgent is it?')), urgencyBox,
   h('p', { class: 'hint' }, t('Be honest: this raises the priority, and the team can see every rating.')),
+  help,
   h('label', { for: 'photo' }, t('Photo (optional)')), photo,
   h('p', { class: 'hint' }, t('JPG, PNG or WebP, up to 5 MB.')),
   similar, error,

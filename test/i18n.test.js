@@ -8,6 +8,7 @@ import as from '../public/lang/as.js';
 import bn from '../public/lang/bn.js';
 import odia from '../public/lang/or.js';
 import { CAMPUS, CATEGORIES, SECURITY_QUESTIONS, STATUSES } from '../server/config.js';
+import { PUBLIC_GROUPS } from '../server/emergency.js';
 import { INSTITUTE } from '../server/institute.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
@@ -68,6 +69,8 @@ const dynamicKeys = [
   'Another student says the problem is still there', 'Reporter says it is not fixed', 'Unassigned', 'Confirmed via me too',
   'Confirmed by another student (me too)', 'system', 'reporter',
   'built-in rules', 'local model', 'No clear match, so it goes to the Estate Office',
+  // The public emergency numbers that ship with the code (the full directory is private and stays in English)
+  ...PUBLIC_GROUPS.flatMap((g) => [g.group, ...g.entries.flatMap((e) => [e.role, e.name])]),
 ];
 
 // Every fixed message the server can send. (Messages with a name or number built in stay in English.)

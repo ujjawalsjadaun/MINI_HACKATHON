@@ -2,7 +2,7 @@ import { api, session } from '../api.js';
 import { badge, formatDate, h, toast } from '../dom.js';
 import { t } from '../i18n.js';
 import { go, route } from '../router.js';
-import { categoryLabel, emptyState, feedbackCard, getMeta, issueCard, noteText, priorityReason, timeline, whereCard } from './shared.js';
+import { categoryLabel, contactList, contactsWith, emptyState, feedbackCard, getEmergency, getMeta, helpTags, isHostelPlace, issueCard, noteText, priorityReason, timeline, whereCard } from './shared.js';
 
 const option = (value, text, selected) => h('option', { value, selected: selected ? true : null }, text);
 
@@ -48,7 +48,7 @@ route('/admin', ['admin', 'staff'], async () => {
 
 route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
   const isAdmin = session.user.role === 'admin';
-  const [m, detail, staff] = await Promise.all([getMeta(api), api(`/issues/${id}`), isAdmin ? api('/staff') : []]);
+  const [m, detail, staff, directory] = await Promise.all([getMeta(api), api(`/issues/${id}`), isAdmin ? api('/staff') : [], getEmergency(api)]);
   const { issue, reports, log } = detail;
 
   // Teams cannot close an issue themselves: only a reporter's confirmation resolves it.
@@ -92,6 +92,11 @@ route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
   error,
   h('div', { class: 'row', style: 'margin-top:1rem' }, save));
 
+  // Useful numbers for this issue: the engineering cell for building faults, the hostel office for hostel problems,
+  // and the emergency contacts when it is critical.
+  const contacts = contactsWith(directory, helpTags({ category: issue.category, hostel: isHostelPlace(m, issue.location), emergency: issue.priority.label === 'critical' && issue.status !== 'resolved' }));
+  const contactsCard = contacts.length > 0 && issue.status !== 'resolved' && h('div', { class: 'card' }, h('h2', {}, t('Useful contacts for this issue')), contactList(contacts));
+
   const acknowledgePanel = !issue.acknowledged_at && issue.status !== 'resolved' && h('div', { class: 'notice' },
     h('strong', {}, t('Not acknowledged yet')),
     h('p', { class: 'hint' }, t('Let the reporters know the team has seen this, even before work starts.')),
@@ -114,6 +119,7 @@ route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
     h('p', {}, h('a', { href: '#/admin' }, t('< Back to queue'))),
     issueCard(issue, m),
     whereCard(m, issue),
+    contactsCard,
     acknowledgePanel,
     h('div', { class: 'card' },
       h('h2', {}, t('Why this priority')),
