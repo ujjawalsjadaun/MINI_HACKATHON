@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS reports (
   UNIQUE (issue_id, user_id)
 );
 
--- Password resets are handed out by the admin office: a request, then a one-time code (stored hashed).
+-- Password resets: a one-time code is emailed to the account address (only its hash is stored).
 CREATE TABLE IF NOT EXISTS password_resets (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -61,8 +61,7 @@ CREATE TABLE IF NOT EXISTS password_resets (
   salt TEXT,
   expires_at INTEGER,
   attempts INTEGER NOT NULL DEFAULT 0,
-  used_at INTEGER,
-  request_hash TEXT
+  used_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS status_log (
@@ -87,7 +86,6 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
 // Databases created before a column existed get it on startup.
 const ADDED_COLUMNS = {
   issues: [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT']],
-  password_resets: [['request_hash', 'TEXT']],
 };
 
 function addMissingColumns(db) {

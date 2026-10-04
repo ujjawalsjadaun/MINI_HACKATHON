@@ -1,5 +1,8 @@
 import os from 'node:os';
 
+// Optional settings (SMTP for reset emails, OLLAMA_MODEL, PORT) can live in a local, git-ignored .env file.
+try { process.loadEnvFile('.env'); } catch { /* no .env file: use the real environment only */ }
+
 const port = Number(process.env.PORT) || 3000;
 
 // node:sqlite needs a recent Node; explain that instead of crashing with an obscure import error.

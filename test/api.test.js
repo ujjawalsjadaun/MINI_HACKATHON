@@ -9,11 +9,13 @@ import { openDb } from '../server/db.js';
 
 let server, base, uploadDir;
 const db = openDb(':memory:');
+const mails = []; // reset emails the app tried to send
+const mailer = { delivers: true, send: async (mail) => { mails.push(mail); } };
 
 before(async () => {
   uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'campusfix-'));
   createUser(db, { name: 'Admin', email: 'admin@test.edu', password: 'adminpass', role: 'admin' });
-  server = createApp(db, { uploadDir }).listen(0);
+  server = createApp(db, { uploadDir, mailer }).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://localhost:${server.address().port}`;
 });
@@ -397,78 +399,64 @@ test('suggestions work without any key, are student-only and rate limited', asyn
   assert.equal(last.status, 429);
 });
 
-test('password reset: the admin office issues a one-time code, wrong codes lock, sessions end', async () => {
-  const admin = await adminLogin();
+test('password reset: a code is emailed to the account, locks after wrong tries, and ends all sessions', async () => {
   const student = await signup('Reena');
   const email = 'reena@test.edu';
-  const asked = () => call('POST', '/api/auth/forgot', { body: { email } });
+  const asked = (address = email) => call('POST', '/api/auth/forgot', { body: { email: address } });
+  const lastMail = () => mails.at(-1);
 
-  // Same answer for real and unknown accounts, and nothing is created for an unknown one.
+  // The answer is the same for real and unknown accounts; only the real one gets an email.
   const real = (await asked()).data;
-  const unknown = (await call('POST', '/api/auth/forgot', { body: { email: 'nobody@test.edu' } })).data;
-  assert.deepEqual(Object.keys(real).sort(), Object.keys(unknown).sort());
+  const unknown = (await asked('nobody@test.edu')).data;
+  assert.deepEqual(real, unknown);
   assert.equal(real.ok, true);
-  assert.equal(unknown.ok, true);
-  await asked(); // a repeat does not create a second pending request
-  const pending = (await call('GET', '/api/admin/resets', { token: admin })).data.filter((r) => r.email === email);
-  assert.equal(pending.length, 1);
-  assert.equal(pending[0].code_active, 0);
-  assert.equal((await call('GET', '/api/admin/resets', { token: student })).status, 403);
-  assert.equal((await call('POST', `/api/admin/resets/${pending[0].id}/code`, { token: student })).status, 403);
+  assert.equal(mails.filter((m) => m.to === 'nobody@test.edu').length, 0);
+  assert.equal(lastMail().to, email);
+  const first = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
 
-  // Without a code nothing can be reset.
-  const attempt = (code, password = 'brandnew1') => call('POST', '/api/auth/reset', { body: { email, code, password } });
-  assert.equal((await attempt('ABCDEFGH')).status, 400);
+  // The code is never in the API response.
+  assert.ok(!JSON.stringify(real).includes(first));
 
-  const { code } = (await call('POST', `/api/admin/resets/${pending[0].id}/code`, { token: admin })).data;
-  assert.match(code, /^[A-HJKMNP-Z2-9]{8}$/);
+  const attempt = (code, password = 'brandnew1', who = email) => call('POST', '/api/auth/reset', { body: { email: who, code, password } });
+  assert.equal((await attempt('WRONGCOD')).status, 400);
+  assert.equal((await attempt(first, 'short')).status, 400); // the new password is still validated
 
-  // Wrong codes are counted; after 5 even the right one is refused until a new code is issued.
+  // Asking again makes the earlier code useless.
+  await asked();
+  const second = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
+  assert.notEqual(second, first);
+  assert.equal((await attempt(first)).status, 400);
+
+  // Five wrong guesses lock the current code, even for the right one.
   for (let i = 0; i < 5; i++) assert.equal((await attempt('WRONGCOD')).status, 400);
-  assert.equal((await attempt(code)).status, 400);
-  const fresh = (await call('POST', `/api/admin/resets/${pending[0].id}/code`, { token: admin })).data.code;
+  assert.equal((await attempt(second)).status, 400);
 
-  assert.equal((await attempt(fresh, 'short')).status, 400); // new password still validated
-  assert.equal((await attempt(fresh.toLowerCase().replace(/^(....)/, '$1-'))).status, 200); // case and dash tolerant
-  assert.equal((await attempt(fresh)).status, 400); // single use
+  // A fresh code works once, tolerating lower case and a dash.
+  await asked();
+  const third = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
+  assert.equal((await attempt(third.toLowerCase().replace(/^(....)/, '$1-'))).status, 200);
+  assert.equal((await attempt(third)).status, 400);
 
   // The old password and the old session are gone; the new password works.
   assert.equal((await call('GET', '/api/me', { token: student })).status, 401);
   assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'secret123' } })).status, 401);
   assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'brandnew1' } })).status, 200);
-  assert.equal((await call('GET', '/api/admin/resets', { token: admin })).data.some((r) => r.email === email), false);
 });
 
-test('password reset: the waiting browser is told when an admin approves, then sets the password itself', async () => {
-  const admin = await adminLogin();
-  await signup('Tanvi');
-  const email = 'tanvi@test.edu';
-  const ask = async () => (await call('POST', '/api/auth/forgot', { body: { email } })).data.request_token;
-  const status = async (token) => (await call('GET', `/api/auth/forgot/status?token=${token}`)).data.status;
-  const reset = (body) => call('POST', '/api/auth/reset', { body: { password: 'tokenpass1', ...body } });
+test('reset requests are limited per account, and a failing mail server does not change the answer', async () => {
+  await signup('Rahul');
+  const before = mails.length;
+  const ask = () => call('POST', '/api/auth/forgot', { body: { email: 'rahul@test.edu' } });
+  for (let i = 0; i < 5; i++) assert.equal((await ask()).status, 200);
+  assert.equal(mails.length - before, 3); // 3 per hour per account, the rest are quietly ignored
 
-  const token = await ask();
-  assert.equal(await status(token), 'pending');
-  assert.equal(await status('0'.repeat(48)), 'pending'); // unknown tokens look the same as waiting ones
-  assert.equal((await reset({ token })).status, 400); // not approved yet
-
-  const request = (await call('GET', '/api/admin/resets', { token: admin })).data.find((r) => r.email === email);
-  await call('POST', `/api/admin/resets/${request.id}/code`, { token: admin });
-  assert.equal(await status(token), 'approved');
-
-  // Only the browser that holds the token can finish; a guessed token cannot.
-  assert.equal((await reset({ token: 'f'.repeat(48) })).status, 400);
-  assert.equal((await reset({ token, password: 'short' })).status, 400);
-  assert.equal((await reset({ token })).status, 200);
-  assert.equal((await reset({ token })).status, 400); // single use
-  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'tokenpass1' } })).status, 200);
-
-  // Asking again hands the newest browser the token and invalidates the older one.
-  const first = await ask();
-  const second = await ask();
-  const again = (await call('GET', '/api/admin/resets', { token: admin })).data.filter((r) => r.email === email);
-  assert.equal(again.length, 1);
-  await call('POST', `/api/admin/resets/${again[0].id}/code`, { token: admin });
-  assert.equal(await status(first), 'pending');
-  assert.equal(await status(second), 'approved');
+  const broken = createApp(db, { uploadDir, mailer: { delivers: true, send: async () => { throw new Error('smtp down'); } } }).listen(0);
+  await new Promise((r) => broken.once('listening', r));
+  try {
+    await signup('Rina');
+    const res = await fetch(`http://localhost:${broken.address().port}/api/auth/forgot`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'rina@test.edu' }) });
+    assert.equal(res.status, 200);
+  } finally {
+    broken.close();
+  }
 });
