@@ -77,13 +77,13 @@ npm start         # http://localhost:3000  (use PORT=3001 npm start if 3000 is t
 
 The first start fills an empty database with the demo accounts and issues (set `NO_AUTO_SEED=1` to start empty); `npm run seed` does the same by hand. If you pulled a newer version, delete the `data/` folder first, because the schema has changed.
 
-Demo accounts created by the seed (change the admin with `ADMIN_EMAIL` / `ADMIN_PASSWORD`):
+Demo accounts created by the seed (change the admin with `ADMIN_EMAIL` / `ADMIN_PASSWORD`; the email must end in `@nitap.ac.in`):
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | `admin@campusfix.local` | `admin1234` |
-| Student | `asha@campusfix.local` | `student1234` (also bimal, chen, divya, esha) |
-| Staff | `ramesh@campusfix.local` | `staff1234` (also priya, suresh, kavita, arun) |
+| Admin | `admin@nitap.ac.in` | `admin1234` |
+| Student | `asha@nitap.ac.in` | `student1234` (also bimal, chen, divya, esha) |
+| Staff | `ramesh@nitap.ac.in` | `staff1234` (also priya, suresh, kavita, arun) |
 
 Every demo student and staff member has the security question "favourite school teacher" with the answer **`nitap`** (used by Forgot password below). The admin account has none and cannot be reset that way.
 
@@ -172,6 +172,7 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 ## Security and reliability
 
 - Passwords hashed with scrypt and a per-user salt; random session tokens with expiry; role checks enforced **on the server** for every route (students, staff and admins each have their own boundary, covered by tests).
+- Only institute addresses: registering, signing in and resetting a password all require an email ending exactly in `@nitap.ac.in` (any letter case). The server enforces it; the forms also say so as you type. Look-alikes such as `@nitap.ac.in.evil.com` or `@fake-nitap.ac.in` are rejected. Databases seeded before this rule have their `@campusfix.local` demo accounts moved to `@nitap.ac.in` automatically on startup.
 - Failed-login throttling (5 attempts, 10 minute lock per email and IP).
 - All input validated on the server (lengths, known categories and locations, known staff); SQL is fully parameterised.
 - Photo uploads: JPG, PNG or WebP only, 5 MB limit, random server-side filenames, served with `nosniff`.
@@ -184,7 +185,7 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - Duplicate matching is rule-based, not semantic, and does not compare photos. It can miss duplicates described in very different words. Admins cannot yet merge issues by hand.
 - "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
-- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password reset uses security questions, which are convenient but weaker than an emailed link.
+- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. The `@nitap.ac.in` rule checks the address format only; without an email service it cannot prove the person owns that mailbox. Password reset uses security questions, which are convenient but weaker than an emailed link.
 - The campus map is a schematic drawing laid out by area, not a survey: building positions are illustrative and not to scale. Issues without a dropped pin are shown faded inside their building.
 - Translations: error messages that have a name or number built in (for example a field-length message) stay in English, dates use the browser's own formatting, and the Hindi, Assamese, Bengali and Odia text needs review by native speakers.
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.

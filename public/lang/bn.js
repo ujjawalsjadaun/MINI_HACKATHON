@@ -106,7 +106,6 @@ export default {
   "Incorrect email or password": "ইমেল বা পাসওয়ার্ড ভুল",
   "Too many failed attempts. Try again in a few minutes.": "অনেকবার ব্যর্থ চেষ্টা হয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।",
   "An account with this email already exists": "এই ইমেল দিয়ে আগেই একটি অ্যাকাউন্ট আছে",
-  "Enter a valid email address": "একটি বৈধ ইমেল ঠিকানা দিন",
   "Choose one of the security questions": "নিরাপত্তা প্রশ্নগুলির একটি বেছে নিন",
   "The security answer must be 3 to 60 characters": "নিরাপত্তা উত্তর 3 থেকে 60 অক্ষরের মধ্যে হতে হবে",
   "Too many wrong answers. Try again in a few minutes.": "অনেকবার ভুল উত্তর দেওয়া হয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।",
@@ -454,4 +453,7 @@ export default {
 
   // QR tags: network address
   "Phones cannot open this address. Choose one of this computer's network addresses: {list}": "ফোন এই ঠিকানা খুলতে পারে না। এই কম্পিউটারের একটি নেটওয়ার্ক ঠিকানা বেছে নিন: {list}",
+  // Institute email addresses only
+  "Use your NIT Arunachal Pradesh email address (ending in @nitap.ac.in)": "আপনার এনআইটি অরুণাচল প্রদেশের ইমেল ঠিকানা ব্যবহার করুন (@nitap.ac.in দিয়ে শেষ হওয়া)",
+  "Only @nitap.ac.in email addresses can be used.": "শুধু @nitap.ac.in ইমেল ঠিকানাই ব্যবহার করা যাবে।",
 };

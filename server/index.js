@@ -25,7 +25,13 @@ if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
     console.warn('No accounts exist yet, so nobody can sign in. Run "npm run seed" first.');
   } else {
     console.log('First run: creating the demo accounts and issues...');
-    execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/seed.js', import.meta.url))], { stdio: 'inherit' });
+    try {
+      execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/seed.js', import.meta.url))], { stdio: 'inherit' });
+    } catch {
+      // The seed explains what went wrong (for example an ADMIN_EMAIL outside @nitap.ac.in); keep serving
+      // rather than crash, so a restart loop does not hide the message.
+      console.warn('The demo data could not be created (see above). The site is running, but nobody can sign in yet.');
+    }
   }
 }
 
