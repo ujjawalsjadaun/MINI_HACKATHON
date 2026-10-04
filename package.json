@@ -1,0 +1,20 @@
+{
+  "name": "campus-fix",
+  "version": "1.0.0",
+  "description": "Campus issue management: report, dedupe, prioritise, assign and track campus problems.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "seed": "node scripts/seed.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.3",
+    "multer": "^1.4.4"
+  }
+}
