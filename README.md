@@ -49,7 +49,7 @@ The label is critical (60+), high (45+), medium (25+) or low. The SLA clock paus
 ## Interface and accessibility
 
 - Plain HTML, CSS and JavaScript (no build step) with an institutional look: a navy and gold theme, the host institute's logo and a clear "student project, not an official service" notice on every page.
-- Responsive down to phone width, light and dark themes (an illustrated campus day scene, and a night scene in dark mode with slowly drifting clouds that stop for users who prefer reduced motion), and a print stylesheet for the QR stickers.
+- Responsive down to phone width, light and dark themes (the page background is the institute's own campus photo, softened under a translucent overlay, and darkened in dark mode), and a print stylesheet for the QR stickers.
 - Keyboard and screen-reader friendly: skip link, labelled form fields, visible focus rings, live regions for results, text alternatives for images and QR codes, and status shown as text as well as colour.
 
 ## Run it
@@ -175,6 +175,8 @@ The sign-in page shows facts about the host institute that were copied from [nit
 Express, multer, qrcode, and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
 
 The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. CampusFix is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
+
+The background photo `public/assets/nitap-campus.jpg` (Academic Block III) is the hero image on the institute's home page, downloaded from [nitap.ac.in](https://www.nitap.ac.in/images/panorama.jpg). It is the institute's property; the only changes are scaling it down to 1920 px wide and compressing it, and it is shown under a translucent overlay. It is credited in the page footer and used only to show the host campus.
 
 ## Submission details
 
