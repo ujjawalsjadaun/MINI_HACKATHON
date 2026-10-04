@@ -431,7 +431,18 @@ test('password reset: a code is emailed to the account, locks after wrong tries,
   for (let i = 0; i < 5; i++) assert.equal((await attempt('WRONGCOD')).status, 400);
   assert.equal((await attempt(second)).status, 400);
 
+  // The code is only valid for 2 minutes. (Earlier requests are aged so the hourly limit does not interfere.)
+  const ageRequests = () => db.prepare('UPDATE password_resets SET requested_at = requested_at - 7200000').run();
+  ageRequests();
+  assert.equal(real.expires_in, 120);
+  await asked();
+  assert.match(lastMail().text, /expires in 2 minutes/);
+  const expiring = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
+  db.prepare('UPDATE password_resets SET expires_at = ? WHERE used_at IS NULL').run(Date.now() - 1);
+  assert.equal((await attempt(expiring)).status, 400);
+
   // A fresh code works once, tolerating lower case and a dash.
+  ageRequests();
   await asked();
   const third = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
   assert.equal((await attempt(third.toLowerCase().replace(/^(....)/, '$1-'))).status, 200);

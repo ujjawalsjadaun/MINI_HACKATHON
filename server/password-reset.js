@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { hashPassword, verifyPassword } from './auth.js';
 import { HttpError, requireString, wrap } from './http.js';
 
-const CODE_TTL_MS = 15 * 60 * 1000;
+const CODE_TTL_MS = 2 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const REQUESTS_PER_HOUR_PER_IP = 10;
 const REQUESTS_PER_HOUR_PER_USER = 3;
@@ -36,11 +36,11 @@ export function passwordResetRoutes(db, router, mailer) {
       mailer.send({
         to: user.email,
         subject: 'Your CampusFix password reset code',
-        text: `Hello ${user.name},\n\nYour CampusFix password reset code is:\n\n    ${code}\n\nIt works once and expires in 15 minutes. If you did not ask for this, ignore this email and your password stays as it is.\n`,
+        text: `Hello ${user.name},\n\nYour CampusFix password reset code is:\n\n    ${code}\n\nIt works once and expires in ${CODE_TTL_MS / 60_000} minutes. If you did not ask for this, ignore this email and your password stays as it is.\n`,
       }).catch((err) => console.error('Could not send the reset email:', err.message));
     }
     // Same answer whether or not the account exists, so this cannot be used to find out who has one.
-    res.json({ ok: true, delivery: mailer.delivers ? 'email' : 'console' });
+    res.json({ ok: true, delivery: mailer.delivers ? 'email' : 'console', expires_in: CODE_TTL_MS / 1000 });
   }));
 
   router.post('/auth/reset', wrap((req, res) => {
