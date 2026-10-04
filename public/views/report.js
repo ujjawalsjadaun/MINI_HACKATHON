@@ -25,7 +25,7 @@ route('/report', ['student'], async () => {
   const submit = h('button', { class: 'primary', type: 'submit' }, 'Submit report');
   const similar = h('div', { 'aria-live': 'polite' });
   const aiBox = h('div', { 'aria-live': 'polite' });
-  const aiButton = h('button', { class: 'secondary ai-btn', type: 'button' }, '✨ Improve with AI');
+  const aiButton = h('button', { class: 'secondary ai-btn', type: 'button' }, '✨ Smart suggest');
 
   // Opened from a QR sticker: location (and room) arrive pre-filled.
   const taggedLocation = m.locations.includes(tag.get('location')) ? tag.get('location') : '';
@@ -73,7 +73,7 @@ route('/report', ['student'], async () => {
   for (const el of [category, description, detail]) el.addEventListener('input', checkNearby);
   checkNearby();
 
-  // Optional AI helper: suggests a category and a clearer description. The student decides what to use.
+  // Suggestion helper: suggests a category and a clearer description. The student decides what to use.
   const aiEnabled = await api('/ai/status').then((r) => r.enabled).catch(() => false);
   aiButton.addEventListener('click', async () => {
     if (description.value.trim().length < 8) { aiBox.replaceChildren(h('p', { class: 'hint' }, 'Write a few words about the problem first.')); return; }
@@ -83,7 +83,7 @@ route('/report', ['student'], async () => {
       const s = await api('/ai/suggest', { method: 'POST', body: { description: description.value, location: picker.place } });
       const label = m.categories.find((c) => c.key === s.category)?.label ?? s.category;
       aiBox.replaceChildren(h('div', { class: `notice ai-box${s.urgent ? ' urgent' : ''}` },
-        h('strong', {}, '✨ AI suggestion'),
+        h('strong', {}, `✨ Suggestion (${s.source})`),
         s.urgent && h('p', { class: 'error' }, 'This looks like a safety hazard. Keep away from it and tell a staff member if it is dangerous right now.'),
         h('p', {}, h('strong', {}, 'Category: '), label, h('span', { class: 'hint' }, ` - ${s.reason}`)),
         h('p', {}, h('strong', {}, 'Clearer description: '), s.description),
@@ -96,12 +96,12 @@ route('/report', ['student'], async () => {
             toast('Suggestion applied. Check it before you submit.');
           } }, 'Use this'),
           h('button', { class: 'secondary', type: 'button', onclick: () => aiBox.replaceChildren() }, 'Keep mine')),
-        h('p', { class: 'hint' }, 'AI can make mistakes. You are in charge of what gets submitted.')));
+        h('p', { class: 'hint' }, 'Suggestions can be wrong. You decide what gets submitted.')));
     } catch (err) {
       aiBox.replaceChildren(h('p', { class: 'error', role: 'alert' }, err.message));
     } finally {
       aiButton.disabled = false;
-      aiButton.textContent = '✨ Improve with AI';
+      aiButton.textContent = '✨ Smart suggest';
     }
   });
 
@@ -140,7 +140,7 @@ route('/report', ['student'], async () => {
   h('span', { class: 'field-label' }, 'Where is the problem?'), picker.el,
   h('label', { for: 'detail' }, 'Room / spot (optional)'), detail,
   h('label', { for: 'description' }, 'Description'), description,
-  aiEnabled && h('div', { class: 'row', style: 'margin-top:.5rem' }, aiButton, h('span', { class: 'hint' }, 'Not sure what category fits, or how to word it? Let AI help.')),
+  aiEnabled && h('div', { class: 'row', style: 'margin-top:.5rem' }, aiButton, h('span', { class: 'hint' }, 'Not sure which category fits or how to word it? Get a suggestion.')),
   aiEnabled && aiBox,
   h('label', { for: 'photo' }, 'Photo (optional)'), photo,
   h('p', { class: 'hint' }, 'JPG, PNG or WebP, up to 5 MB.'),
