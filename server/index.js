@@ -9,7 +9,7 @@ try {
   ({ createApp } = await import('./app.js'));
 } catch (err) {
   if (err.code === 'ERR_UNKNOWN_BUILTIN_MODULE') {
-    console.error(`CampusFix needs Node.js 22.13 or newer (found ${process.version}). Install it from https://nodejs.org and try again.`);
+    console.error(`UniSeva Portal needs Node.js 22.13 or newer (found ${process.version}). Install it from https://nodejs.org and try again.`);
     process.exit(1);
   }
   throw err;
@@ -21,7 +21,7 @@ if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
 }
 
 const server = createApp(db).listen(port, () => {
-  console.log(`CampusFix running at http://localhost:${port}`);
+  console.log(`UniSeva Portal running at http://localhost:${port}`);
   for (const nets of Object.values(os.networkInterfaces())) {
     for (const net of nets ?? []) {
       if (net.family === 'IPv4' && !net.internal) console.log(`On your network:        http://${net.address}:${port}`);

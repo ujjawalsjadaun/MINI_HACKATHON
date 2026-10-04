@@ -58,7 +58,7 @@ function signInCard() {
         t(isLogin ? 'New here? Register' : 'Have an account? Sign in'))));
 
     card.replaceChildren(
-      h('h1', {}, t(isLogin ? 'Sign in to CampusFix' : 'Create your account')),
+      h('h1', {}, t(isLogin ? 'Sign in to UniSeva Portal' : 'Create your account')),
       h('p', { class: 'muted' }, t('Report broken lights, Wi-Fi, leaks and more. Track every complaint until it is fixed.')),
       form,
     );
@@ -88,7 +88,7 @@ function aboutPanel() {
       h('p', { class: 'hint' }, `${info.address}. ${t('Phone {phone}.', { phone: info.phone })}`),
       h('p', { class: 'hint' }, t('Source: '),
         info.sources.flatMap((s, i) => [i > 0 && ', ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, t(s.label))]),
-        t(' (retrieved {date}). CampusFix is a student project, not an official service of the institute.', { date: info.retrieved }))).childNodes);
+        t(' (retrieved {date}). UniSeva Portal is a student project, not an official service of the institute.', { date: info.retrieved }))).childNodes);
   }).catch(() => panel.remove()); // the panel is a bonus: the sign-in form works without it
   return panel;
 }

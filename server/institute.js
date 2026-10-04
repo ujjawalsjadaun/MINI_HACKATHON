@@ -1,6 +1,6 @@
 // Facts about the host institute, taken from its official website (https://www.nitap.ac.in).
 // The static part was copied from the pages listed in `sources` on RETRIEVED. The notices are fetched live
-// (and cached) so they stay current. This is information about the institute, not a claim that CampusFix is official.
+// (and cached) so they stay current. This is information about the institute, not a claim that UniSeva Portal is official.
 
 const SITE = 'https://www.nitap.ac.in';
 export const RETRIEVED = '2026-10-04';
@@ -57,7 +57,7 @@ let cache = { at: 0, notices: [] };
 export async function latestNotices({ fetchImpl = fetch, now = Date.now() } = {}) {
   if (now - cache.at < CACHE_MS) return cache.notices;
   try {
-    const res = await fetchImpl(`${SITE}/`, { signal: AbortSignal.timeout(6000), headers: { 'user-agent': 'CampusFix-student-project' } });
+    const res = await fetchImpl(`${SITE}/`, { signal: AbortSignal.timeout(6000), headers: { 'user-agent': 'UniSeva Portal-student-project' } });
     if (!res.ok) throw new Error(`status ${res.status}`);
     cache = { at: now, notices: parseNotices(await res.text()) };
   } catch (err) {

@@ -1,12 +1,12 @@
-# CampusFix
+# UniSeva Portal
 
 **Problem 2: The Campus Issue Management Gap** (Hackathon Arunachal 2026)
 
-CampusFix replaces WhatsApp messages and verbal complaints with one place to report, group, prioritise, assign and track campus problems until a reporter confirms they are fixed.
+UniSeva Portal replaces WhatsApp messages and verbal complaints with one place to report, group, prioritise, assign and track campus problems until a reporter confirms they are fixed.
 
 ## What it does
 
-| Problem in the brief | How CampusFix handles it |
+| Problem in the brief | How UniSeva Portal handles it |
 |---|---|
 | Students don't know who to report to | Pick a category, a place from the NIT Arunachal Pradesh campus map (blocks, hostels, residences, facilities) and a floor. The issue is **auto-routed** to the right team (Electrical, IT, Civil & Plumbing, Housekeeping, ...). |
 | Exact locations are hard to describe | **QR location tags.** Print a sticker per block or room; scanning it opens the report form with the location already filled in. |
@@ -109,7 +109,7 @@ mkdir private
 cp server/emergency-contacts.example.json private/emergency-contacts.json   # then replace the fake entries
 ```
 
-Each entry has a `role`, a `name`, a list of `phones` and `tags` that decide where it is offered: `emergency` (shown when a report is rated Emergency), `hostel`, `engineering` (building faults), `medical`, `ambulance`, `security`, `police`, `fire`, `night`. Phone numbers are validated before they become `tel:` links, a broken file is ignored with a warning, and the file is re-read on every request, so edits need no restart. Set `EMERGENCY_FILE` to keep it somewhere else. Keep the numbers current: CampusFix only displays them and never places calls or messages.
+Each entry has a `role`, a `name`, a list of `phones` and `tags` that decide where it is offered: `emergency` (shown when a report is rated Emergency), `hostel`, `engineering` (building faults), `medical`, `ambulance`, `security`, `police`, `fire`, `night`. Phone numbers are validated before they become `tel:` links, a broken file is ignored with a warning, and the file is re-read on every request, so edits need no restart. Set `EMERGENCY_FILE` to keep it somewhere else. Keep the numbers current: UniSeva Portal only displays them and never places calls or messages.
 
 ### Smart suggestions on the report form
 
@@ -190,18 +190,18 @@ Embedding-based text and photo matching, manual merge for admins, notifications,
 
 ## Information from the official site
 
-The sign-in page shows facts about the host institute that were copied from [nitap.ac.in](https://www.nitap.ac.in) (status, establishment, address, vision and mission) with their source pages and retrieval date, kept in `server/institute.js`. The **Latest notices** list is fetched live from the site's home page, cached for an hour and simply hidden if the site cannot be reached. The campus map's hostel names (Lohit, Subansiri, Papum) follow the institute's hostel admission notice. None of this makes CampusFix an official service.
+The sign-in page shows facts about the host institute that were copied from [nitap.ac.in](https://www.nitap.ac.in) (status, establishment, address, vision and mission) with their source pages and retrieval date, kept in `server/institute.js`. The **Latest notices** list is fetched live from the site's home page, cached for an hour and simply hidden if the site cannot be reached. The campus map's hostel names (Lohit, Subansiri, Papum) follow the institute's hostel admission notice. None of this makes UniSeva Portal an official service.
 
 ## Credits
 
 Express, multer, qrcode, and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
 
-The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. CampusFix is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
+The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. UniSeva Portal is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
 
 The background photo `public/assets/nitap-campus.jpg` (Academic Block III) is the hero image on the institute's home page, downloaded from [nitap.ac.in](https://www.nitap.ac.in/images/panorama.jpg). It is the institute's property; the only changes are scaling it down to 1920 px wide and compressing it, and it is shown under a translucent overlay. It is credited in the page footer and used only to show the host campus.
 
 ## Submission details
 
-- **Project:** CampusFix (Problem 2, Campus Issue Management)
+- **Project:** UniSeva Portal (Problem 2, Campus Issue Management)
 - **Tech stack:** Node.js, Express, SQLite, vanilla JavaScript
 - **Deployment:** none; runs on localhost as described above
