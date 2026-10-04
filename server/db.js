@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   salt TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'admin')),
+  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'staff', 'admin')),
+  department TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS issues (
   department TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'assigned', 'in_progress', 'awaiting_confirmation', 'resolved')),
   assigned_to TEXT,
+  assigned_user_id INTEGER REFERENCES users(id),
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   resolved_at INTEGER,

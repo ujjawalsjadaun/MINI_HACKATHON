@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import multer from 'multer';
 import { updateIssue } from './admin.js';
-import { authenticate, requireAdmin } from './auth.js';
+import { authenticate, requireAdmin, requireRole } from './auth.js';
 import { MAX_PHOTO_BYTES } from './config.js';
 import { HttpError, wrap } from './http.js';
 import { addMeToo, confirmFix, getIssueDetail, listIssues, nearbyIssues, rejectFix, submitReport, validateReportInput } from './issues.js';
@@ -54,7 +54,7 @@ export function issueRoutes(db, router, { uploadDir }) {
     }));
   }));
 
-  router.post('/issues', auth, handleUpload, wrap((req, res) => {
+  router.post('/issues', auth, requireRole('student'), handleUpload, wrap((req, res) => {
     try {
       const input = validateReportInput(req.body);
       const result = submitReport(db, req.user, input, req.file ? `/uploads/${req.file.filename}` : null);
@@ -65,29 +65,37 @@ export function issueRoutes(db, router, { uploadDir }) {
     }
   }));
 
-  router.post('/issues/:id/me-too', auth, wrap((req, res) => {
+  router.post('/issues/:id/me-too', auth, requireRole('student'), wrap((req, res) => {
     addMeToo(db, req.user, idParam(req));
     res.status(201).json({ ok: true });
   }));
 
-  router.post('/issues/:id/confirm', auth, wrap((req, res) => {
+  router.post('/issues/:id/confirm', auth, requireRole('student'), wrap((req, res) => {
     confirmFix(db, req.user, idParam(req));
     res.json({ ok: true });
   }));
 
-  router.post('/issues/:id/reopen', auth, wrap((req, res) => {
+  router.post('/issues/:id/reopen', auth, requireRole('student'), wrap((req, res) => {
     rejectFix(db, req.user, idParam(req), req.body?.note);
     res.json({ ok: true });
   }));
 
   router.get('/issues', auth, wrap((req, res) => {
     const { status, category, location, mine } = req.query;
-    res.json(listIssues(db, { status, category, location, mineOf: mine === '1' ? req.user.id : undefined }));
+    res.json(listIssues(db, {
+      status, category, location,
+      mineOf: mine === '1' ? req.user.id : undefined,
+      assignedTo: req.user.role === 'staff' ? req.user.id : undefined, // staff only ever see their own queue
+    }));
   }));
 
   router.get('/issues/:id', auth, wrap((req, res) => res.json(getIssueDetail(db, idParam(req), req.user))));
 
-  router.patch('/issues/:id', auth, requireAdmin, wrap((req, res) => {
+  router.get('/staff', auth, requireAdmin, (_req, res) => {
+    res.json(db.prepare("SELECT id, name, department FROM users WHERE role = 'staff' ORDER BY department, name").all());
+  });
+
+  router.patch('/issues/:id', auth, requireRole('admin', 'staff'), wrap((req, res) => {
     const id = idParam(req);
     updateIssue(db, req.user, id, req.body);
     res.json(getIssueDetail(db, id, req.user));

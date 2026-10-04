@@ -45,6 +45,11 @@ async function signup(name) {
   return data.token;
 }
 
+const makeStaff = (name, department) =>
+  createUser(db, { name, email: `${name.toLowerCase()}@test.edu`, password: 'staffpass', role: 'staff', department });
+const staffLogin = async (name) =>
+  (await call('POST', '/api/auth/login', { body: { email: `${name.toLowerCase()}@test.edu`, password: 'staffpass' } })).data.token;
+
 const adminLogin = async () =>
   (await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } })).data.token;
 
@@ -165,8 +170,11 @@ test('only admins can update issues; updates land on the student-visible timelin
   assert.equal((await call('PATCH', `/api/issues/${id}`, { token: student, body: { status: 'resolved' } })).status, 403);
   assert.equal((await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'bogus' } })).status, 400);
 
-  const assigned = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { assigned_to: 'Ramesh (plumber)' } });
+  const staffId = makeStaff('Suresh', 'Civil & Plumbing');
+  assert.equal((await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { assignee_id: 999 } })).status, 400);
+  const assigned = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { assignee_id: staffId } });
   assert.equal(assigned.data.issue.status, 'assigned');
+  assert.equal(assigned.data.issue.assigned_to, 'Suresh');
   // The team cannot close it themselves.
   assert.equal((await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'resolved' } })).status, 400);
   const fixed = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'awaiting_confirmation', note: 'Pipe replaced' } });
@@ -271,4 +279,40 @@ test('overdue issues are flagged on the list and counted in insights', async () 
   const { data } = await call('GET', '/api/insights', { token: admin });
   assert.ok(data.totals.overdue >= 1);
   assert.ok(data.overdue.some((i) => i.id === id));
+});
+
+test('staff see and update only issues assigned to them, and cannot assign or view insights', async () => {
+  const admin = await adminLogin();
+  const staffId = makeStaff('Tara', 'IT Services');
+  makeStaff('Uday', 'IT Services');
+  const [tara, uday] = [await staffLogin('Tara'), await staffLogin('Uday')];
+  const s = await signup('Vikram');
+  const mine = (await report(s, 'Router in the lab keeps rebooting every minute', { category: 'wifi', location: 'Academic Block' })).data.issueId;
+  const other = (await report(s, 'Wifi dead in the seminar hall completely', { category: 'wifi', location: 'Sports Complex' })).data.issueId;
+  await call('PATCH', `/api/issues/${mine}`, { token: admin, body: { assignee_id: staffId } });
+
+  // Queue and detail are limited to assigned work.
+  const queue = (await call('GET', '/api/issues', { token: tara })).data;
+  assert.deepEqual(queue.map((i) => i.id), [mine]);
+  assert.equal((await call('GET', '/api/issues', { token: uday })).data.length, 0);
+  assert.equal((await call('GET', `/api/issues/${other}`, { token: tara })).status, 403);
+  assert.equal((await call('GET', `/api/issues/${mine}`, { token: uday })).status, 403);
+
+  // Staff can work their issue (reporter names stay hidden) but not assign or close it.
+  const detail = await call('GET', `/api/issues/${mine}`, { token: tara });
+  assert.equal(detail.data.reports.length, 1);
+  assert.equal(detail.data.reports[0].reporter, undefined);
+  assert.equal((await call('PATCH', `/api/issues/${mine}`, { token: tara, body: { status: 'in_progress', note: 'On it' } })).status, 200);
+  assert.equal((await call('PATCH', `/api/issues/${other}`, { token: tara, body: { status: 'in_progress' } })).status, 403);
+  assert.equal((await call('PATCH', `/api/issues/${mine}`, { token: tara, body: { assignee_id: null } })).status, 403);
+  assert.equal((await call('PATCH', `/api/issues/${mine}`, { token: tara, body: { status: 'resolved' } })).status, 400);
+  assert.equal((await call('PATCH', `/api/issues/${mine}`, { token: tara, body: { status: 'awaiting_confirmation' } })).status, 200);
+
+  // Role boundaries elsewhere.
+  assert.equal((await call('GET', '/api/insights', { token: tara })).status, 403);
+  assert.equal((await call('GET', '/api/staff', { token: tara })).status, 403);
+  assert.equal((await call('GET', '/api/staff', { token: admin })).data.some((x) => x.name === 'Tara'), true);
+  assert.equal((await call('GET', '/api/staff', { token: s })).status, 403);
+  assert.equal((await report(tara, 'Staff trying to file a report as a student')).status, 403);
+  assert.equal((await call('PATCH', `/api/issues/${mine}`, { token: s, body: { status: 'open' } })).status, 403);
 });

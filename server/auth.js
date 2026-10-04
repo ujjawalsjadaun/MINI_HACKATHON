@@ -15,11 +15,11 @@ function verifyPassword(password, salt, expectedHex) {
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 
-export function createUser(db, { name, email, password, role = 'student' }) {
+export function createUser(db, { name, email, password, role = 'student', department = null }) {
   const { hash, salt } = hashPassword(password);
   const info = db
-    .prepare('INSERT INTO users (name, email, password_hash, salt, role, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(name, email, hash, salt, role, Date.now());
+    .prepare('INSERT INTO users (name, email, password_hash, salt, role, department, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(name, email, hash, salt, role, department, Date.now());
   return Number(info.lastInsertRowid);
 }
 
@@ -29,7 +29,7 @@ function startSession(db, userId) {
   return token;
 }
 
-const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role });
+const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, department: u.department });
 
 // Resolves the bearer token into req.user, or rejects with 401.
 export function authenticate(db) {
@@ -50,6 +50,9 @@ export function authenticate(db) {
 export function requireAdmin(req, _res, next) {
   next(req.user?.role === 'admin' ? undefined : new HttpError(403, 'Admin access required'));
 }
+
+export const requireRole = (...roles) => (req, _res, next) =>
+  next(roles.includes(req.user?.role) ? undefined : new HttpError(403, 'You do not have access to this'));
 
 // Brute-force protection: too many failed logins for one email+IP locks it briefly.
 const MAX_FAILURES = 5;

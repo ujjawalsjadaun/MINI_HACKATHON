@@ -156,13 +156,14 @@ export function addMeToo(db, user, issueId, now = Date.now()) {
   });
 }
 
-export function listIssues(db, { status, category, location, mineOf } = {}) {
+export function listIssues(db, { status, category, location, mineOf, assignedTo } = {}) {
   const where = [];
   const params = [];
   if (status === 'active') where.push("i.status != 'resolved'");
   else if (status) { where.push('i.status = ?'); params.push(status); }
   if (category) { where.push('i.category = ?'); params.push(category); }
   if (location) { where.push('i.location = ?'); params.push(location); }
+  if (assignedTo) { where.push('i.assigned_user_id = ?'); params.push(assignedTo); }
   if (mineOf) { where.push('EXISTS (SELECT 1 FROM reports r WHERE r.issue_id = i.id AND r.user_id = ?)'); params.push(mineOf); }
   const sql = `${ISSUE_SELECT} ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`;
   return db.prepare(sql).all(...params).map((row) => withPriority(row))
@@ -172,7 +173,9 @@ export function listIssues(db, { status, category, location, mineOf } = {}) {
 export function getIssueDetail(db, id, viewer) {
   const row = db.prepare(`${ISSUE_SELECT} WHERE i.id = ?`).get(id);
   if (!row) throw new HttpError(404, 'Issue not found');
+  if (viewer.role === 'staff' && row.assigned_user_id !== viewer.id) throw new HttpError(403, 'This issue is not assigned to you');
   const isAdmin = viewer.role === 'admin';
+  const seesAllReports = viewer.role !== 'student';
   const reports = db
     .prepare(`SELECT r.id, r.description, r.photo, r.match_reason, r.created_at, r.user_id, u.name AS reporter
               FROM reports r JOIN users u ON u.id = r.user_id WHERE r.issue_id = ? ORDER BY r.created_at`)
@@ -190,7 +193,7 @@ export function getIssueDetail(db, id, viewer) {
   const isReporter = reports.some((r) => r.mine);
   return {
     issue: withPriority(row),
-    reports: isAdmin ? reports : reports.filter((r) => r.mine),
+    reports: seesAllReports ? reports : reports.filter((r) => r.mine),
     log,
     can_confirm: row.status === 'awaiting_confirmation' && isReporter,
   };
