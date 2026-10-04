@@ -158,3 +158,22 @@ test('only admins can update issues; updates land on the student-visible timelin
   assert.deepEqual(data.log.map((l) => l.status), ['open', 'assigned', 'resolved']);
   assert.match(data.log.at(-1).note, /Pipe replaced/);
 });
+
+test('insights are admin-only and report merged duplicates and recurring problems', async () => {
+  const student = await signup('Kiran');
+  assert.equal((await call('GET', '/api/insights', { token: student })).status, 403);
+
+  const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } });
+  // A second electrical issue at CS Block, after the first is resolved, marks the spot as recurring.
+  const { data: issues } = await call('GET', '/api/issues?location=CS%20Block&category=electrical', { token: admin.token });
+  await call('PATCH', `/api/issues/${issues[0].id}`, { token: admin.token, body: { status: 'resolved' } });
+  const again = await report(student, 'Tube light broken near the entrance', { location: 'CS Block' });
+  assert.equal(again.data.merged, false);
+
+  const { status, data } = await call('GET', '/api/insights', { token: admin.token });
+  assert.equal(status, 200);
+  assert.ok(data.totals.duplicates_merged >= 2);
+  assert.ok(data.totals.avg_resolution_hours !== null);
+  assert.ok(data.recurring.some((r) => r.category === 'electrical' && r.location === 'CS Block' && r.occurrences >= 2));
+  assert.ok(data.hotspots.find((h) => h.location === 'CS Block').issues >= 2);
+});
