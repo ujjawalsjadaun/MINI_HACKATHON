@@ -162,7 +162,7 @@ Embedding-based text and photo matching, manual merge for admins, notifications,
 
 ## Information from the official site
 
-The sign-in page shows facts about the host institute that were copied from [nitap.ac.in](https://www.nitap.ac.in) (status, establishment, address, vision and mission) with their source pages and retrieval date, kept in `server/institute.js`. The **Latest notices** list is fetched live from the site's home page, cached for an hour and simply hidden if the site cannot be reached. The campus map's hostel names (Lohit-I, Lohit-II, Subansiri, Papum) follow the institute's hostel admission notice. None of this makes CampusFix an official service.
+The sign-in page shows facts about the host institute that were copied from [nitap.ac.in](https://www.nitap.ac.in) (status, establishment, address, vision and mission) with their source pages and retrieval date, kept in `server/institute.js`. The **Latest notices** list is fetched live from the site's home page, cached for an hour and simply hidden if the site cannot be reached. The campus map's hostel names (Lohit, Subansiri, Papum) follow the institute's hostel admission notice. None of this makes CampusFix an official service.
 
 ## Credits
 
