@@ -129,6 +129,8 @@ Embedding-based text and photo matching, manual merge for admins, notifications,
 
 Express, multer, qrcode, and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
 
+The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. CampusFix is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
+
 ## Submission details
 
 - **Project:** CampusFix (Problem 2, Campus Issue Management)
