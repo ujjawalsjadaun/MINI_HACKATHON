@@ -206,3 +206,18 @@ main { width: min(1080px, calc(100% - 1.5rem)); max-width: none; margin: 1rem au
 
 .chip.urgency-urgent.on { background: #b45309; border-color: #b45309; color: #fff; }
 .chip.urgency-emergency.on { background: #b3261e; border-color: #b3261e; color: #fff; }
+
+/* Schematic campus map */
+.map-wrap { overflow-x: auto; }
+.campus-map { display: block; width: 100%; min-width: 560px; height: auto; margin-top: .75rem; border: 1px solid var(--border); border-radius: 12px; background: #e3f0dc; }
+.campus-map .map-zone { font: 700 22px system-ui, sans-serif; fill: #3f5f47; }
+.campus-map .map-road { font: 600 18px system-ui, sans-serif; fill: #4b5563; }
+.campus-map .map-name { font-family: system-ui, sans-serif; font-weight: 700; fill: #1b2333; pointer-events: none; }
+.campus-map.interactive { cursor: crosshair; }
+.campus-map .map-building { transition: filter .15s; }
+.campus-map.interactive .map-building { cursor: pointer; }
+.campus-map.interactive .map-building:hover { filter: brightness(.94) drop-shadow(0 2px 3px rgba(0, 0, 0, .25)); }
+.campus-map .map-building:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.campus-map .map-pin { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); }
+.campus-map a.map-pin { cursor: pointer; }
+.campus-map a.map-pin:hover { filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .5)) brightness(1.1); }

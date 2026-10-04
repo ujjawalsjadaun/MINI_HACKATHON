@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { h, toast } from '../dom.js';
 import { go, route } from '../router.js';
+import { campusMap } from './campus-map.js';
 import { placePicker } from './place-picker.js';
 import { getMeta } from './shared.js';
 
@@ -17,7 +18,18 @@ route('/report', ['student'], async () => {
 
   const category = select('category', m.categories.map((c) => [c.key, c.label]), 'Choose a category');
   let checkNearby = () => {};
-  const picker = placePicker(m.campus, { onChange: () => checkNearby() });
+  let map;
+  const picker = placePicker(m.campus, { onChange: () => { checkNearby(); map?.setPlace(picker.place); } });
+
+  // Optional: tap the schematic map to drop a pin on the exact spot (tapping a building also picks the place).
+  const pinNote = h('p', { class: 'hint', 'aria-live': 'polite' });
+  const showPinNote = () => { pinNote.textContent = map.pin ? 'Pin dropped. It will be saved with your report.' : 'Tap the map to drop a pin on the exact spot (optional). The map is a drawing, not to scale.'; };
+  map = campusMap(m, {
+    interactive: true,
+    onPick: ({ place }) => { if (place && place !== picker.place) picker.select(place); showPinNote(); },
+  });
+  showPinNote();
+  const clearPin = h('button', { class: 'secondary', type: 'button', onclick: () => { map.setPin(null); showPinNote(); } }, 'Remove pin');
   const detail = h('input', { id: 'detail', maxlength: 80, placeholder: 'e.g. room number, near the stairs' });
   const description = h('textarea', { id: 'description', required: true, minlength: 8, maxlength: 600, placeholder: 'What is wrong? Be specific so the right team can fix it.' });
   const photo = h('input', { id: 'photo', type: 'file', accept: PHOTO_TYPES.join(',') });
@@ -130,6 +142,7 @@ route('/report', ['student'], async () => {
       data.append('detail', [picker.floor, detail.value.trim()].filter(Boolean).join(', '));
       data.append('description', description.value);
       data.append('urgency', urgency);
+      if (map.pin) { data.append('pin_x', map.pin.x); data.append('pin_y', map.pin.y); }
       if (file) data.append('photo', file);
 
       submit.disabled = true;
@@ -149,6 +162,7 @@ route('/report', ['student'], async () => {
   },
   h('label', { for: 'category' }, 'Category'), category,
   h('span', { class: 'field-label' }, 'Where is the problem?'), picker.el,
+  h('div', { class: 'map-wrap' }, map.el), h('div', { class: 'row' }, pinNote, clearPin),
   h('label', { for: 'detail' }, 'Room / spot (optional)'), detail,
   h('label', { for: 'description' }, 'Description'), description,
   aiEnabled && h('div', { class: 'row', style: 'margin-top:.5rem' }, aiButton, h('span', { class: 'hint' }, 'Not sure which category fits or how to word it? Get a suggestion.')),

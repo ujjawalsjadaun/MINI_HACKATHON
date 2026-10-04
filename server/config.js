@@ -47,8 +47,8 @@ export const CAMPUS = [
     places: [
       place('NIT Staff Residence', [], { x: 280, y: 410, w: 180, h: 90 }),
       place('Hospital', [], { x: 500, y: 410, w: 140, h: 90 }),
-      place('Old Library', [], { x: 670, y: 410, w: 130, h: 90 }),
-      place('Departmental Store', [], { x: 830, y: 410, w: 130, h: 90 }),
+      place('Old Library', [], { x: 660, y: 410, w: 120, h: 90 }),
+      place('Departmental Store', [], { x: 800, y: 410, w: 160, h: 90 }),
       place('Post Office', [], { x: 500, y: 530, w: 140, h: 70 }),
       place('K.V', [], { x: 670, y: 530, w: 130, h: 70 }),
     ],
