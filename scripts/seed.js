@@ -5,6 +5,7 @@
 //   npm run seed
 //   ADMIN_EMAIL=you@college.edu ADMIN_PASSWORD=choose-one npm run seed
 import { createUser } from '../server/auth.js';
+import { SECURITY_QUESTIONS } from '../server/config.js';
 import { openDb } from '../server/db.js';
 import { updateIssue } from '../server/admin.js';
 import { addMeToo, confirmFix, submitReport } from '../server/issues.js';
@@ -14,6 +15,8 @@ const now = Date.now();
 const ago = (days) => now - days * DAY;
 
 const db = openDb();
+// Every demo student and staff member answers their security question with "nitap".
+const security = { question: SECURITY_QUESTIONS[2], answer: 'nitap' };
 const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@campusfix.local').toLowerCase();
 const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin1234';
 
@@ -23,11 +26,11 @@ if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(adminEmail)) {
 }
 
 const admin = { id: createUser(db, { name: 'Campus Admin', email: adminEmail, password: adminPassword, role: 'admin' }), name: 'Campus Admin', role: 'admin' };
-const student = (name) => ({ id: createUser(db, { name, email: `${name.toLowerCase()}@campusfix.local`, password: 'student1234' }), name });
+const student = (name) => ({ id: createUser(db, { name, email: `${name.toLowerCase()}@campusfix.local`, password: 'student1234', security }), name });
 const [asha, bimal, chen, divya, esha] = ['Asha', 'Bimal', 'Chen', 'Divya', 'Esha'].map(student);
 
 const staffMember = (name, department) => ({
-  id: createUser(db, { name, email: `${name.toLowerCase()}@campusfix.local`, password: 'staff1234', role: 'staff', department }),
+  id: createUser(db, { name, email: `${name.toLowerCase()}@campusfix.local`, password: 'staff1234', role: 'staff', department, security }),
   name,
 });
 const ramesh = staffMember('Ramesh', 'Electrical Maintenance');

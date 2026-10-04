@@ -11,7 +11,10 @@ CREATE TABLE IF NOT EXISTS users (
   salt TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'staff', 'admin')),
   department TEXT,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  security_question TEXT,
+  security_hash TEXT,
+  security_salt TEXT
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -73,6 +76,7 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
 
 // Databases created before a column existed get it on startup.
 const ADDED_COLUMNS = {
+  users: [['security_question', 'TEXT'], ['security_hash', 'TEXT'], ['security_salt', 'TEXT']],
   issues: [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT']],
 };
 

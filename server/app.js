@@ -4,10 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { aiRoutes, createAssistant } from './ai.js';
 import { authenticate, authRoutes, requireAdmin } from './auth.js';
 import { buildInsights } from './insights.js';
-import { CAMPUS, CATEGORIES, LOCATIONS, STATUSES } from './config.js';
+import { CAMPUS, CATEGORIES, LOCATIONS, SECURITY_QUESTIONS, STATUSES } from './config.js';
 import { HttpError, wrap } from './http.js';
 import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
+import { securityQuestionRoutes } from './security-question.js';
 import { qrRoutes } from './qr.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -35,11 +36,13 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
       locations: LOCATIONS,
       campus: CAMPUS,
       statuses: STATUSES,
+      securityQuestions: SECURITY_QUESTIONS,
     });
   });
   // Public: shown on the sign-in page. Notices come live from the official site and may be empty.
   api.get('/institute', wrap(async (_req, res) => res.json({ ...INSTITUTE, notices: await latestNotices() })));
   authRoutes(db, api);
+  securityQuestionRoutes(db, api);
   qrRoutes(api);
   aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });

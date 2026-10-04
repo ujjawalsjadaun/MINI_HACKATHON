@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { SESSION_TTL_MS } from './config.js';
+import { SECURITY_QUESTIONS, SESSION_TTL_MS } from './config.js';
 import { HttpError, requireString, wrap } from './http.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -15,12 +15,29 @@ export function verifyPassword(password, salt, expectedHex) {
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 
-export function createUser(db, { name, email, password, role = 'student', department = null }) {
+// "Rani " and "rani" are the same answer.
+export const normalizeAnswer = (answer) => String(answer).toLowerCase().trim().replace(/\s+/g, ' ');
+
+export function validateSecurity(question, answer) {
+  if (!SECURITY_QUESTIONS.includes(question)) throw new HttpError(400, 'Choose one of the security questions');
+  const cleaned = normalizeAnswer(answer ?? '');
+  if (cleaned.length < 3 || cleaned.length > 60) throw new HttpError(400, 'The security answer must be 3 to 60 characters');
+  return { question, answer: cleaned };
+}
+
+export function setSecurityQuestion(db, userId, question, answer) {
+  const { hash, salt } = hashPassword(normalizeAnswer(answer));
+  db.prepare('UPDATE users SET security_question = ?, security_hash = ?, security_salt = ? WHERE id = ?').run(question, hash, salt, userId);
+}
+
+export function createUser(db, { name, email, password, role = 'student', department = null, security = null }) {
   const { hash, salt } = hashPassword(password);
   const info = db
     .prepare('INSERT INTO users (name, email, password_hash, salt, role, department, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(name, email, hash, salt, role, department, Date.now());
-  return Number(info.lastInsertRowid);
+  const id = Number(info.lastInsertRowid);
+  if (security) setSecurityQuestion(db, id, security.question, security.answer);
+  return id;
 }
 
 function startSession(db, userId) {
@@ -29,7 +46,7 @@ function startSession(db, userId) {
   return token;
 }
 
-const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, department: u.department });
+const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, department: u.department, security_set: Boolean(u.security_hash) });
 
 // Resolves the bearer token into req.user, or rejects with 401.
 export function authenticate(db) {
@@ -58,15 +75,15 @@ export const requireRole = (...roles) => (req, _res, next) =>
 const MAX_FAILURES = 5;
 const LOCK_MS = 10 * 60 * 1000;
 
-export function createLoginThrottle(now = () => Date.now()) {
+export function createLoginThrottle(now = () => Date.now(), maxFailures = MAX_FAILURES) {
   const failures = new Map();
   const live = (key) => {
     const entry = failures.get(key);
-    if (entry && entry.until <= now() && entry.count >= MAX_FAILURES) failures.delete(key);
+    if (entry && entry.until <= now() && entry.count >= maxFailures) failures.delete(key);
     return failures.get(key);
   };
   return {
-    isLocked: (key) => (live(key)?.count ?? 0) >= MAX_FAILURES,
+    isLocked: (key) => (live(key)?.count ?? 0) >= maxFailures,
     fail(key) {
       const entry = live(key) ?? { count: 0 };
       failures.set(key, { count: entry.count + 1, until: now() + LOCK_MS });
@@ -84,8 +101,9 @@ export function authRoutes(db, router, throttle = createLoginThrottle()) {
     if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) {
       throw new HttpError(409, 'An account with this email already exists');
     }
-    const id = createUser(db, { name, email, password });
-    res.status(201).json({ token: startSession(db, id), user: { id, name, email, role: 'student' } });
+    const security = validateSecurity(req.body.securityQuestion, req.body.securityAnswer);
+    const id = createUser(db, { name, email, password, security });
+    res.status(201).json({ token: startSession(db, id), user: { id, name, email, role: 'student', security_set: true } });
   }));
 
   router.post('/auth/login', wrap((req, res) => {

@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createApp } from '../server/app.js';
 import { createUser } from '../server/auth.js';
+import { SECURITY_QUESTIONS } from '../server/config.js';
 import { openDb } from '../server/db.js';
 
 let server, base, uploadDir;
@@ -36,10 +37,11 @@ async function call(method, url, { token, body, form } = {}) {
   return { status: res.status, data: text ? JSON.parse(text) : null };
 }
 
+const QUESTION = SECURITY_QUESTIONS[0];
 const tokens = {};
 async function signup(name) {
   const { data } = await call('POST', '/api/auth/register', {
-    body: { name, email: `${name.toLowerCase()}@test.edu`, password: 'secret123' },
+    body: { name, email: `${name.toLowerCase()}@test.edu`, password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' },
   });
   tokens[name] = data.token;
   return data.token;
@@ -74,7 +76,7 @@ test('registration validates input and rejects duplicate emails', async () => {
   const bad = await call('POST', '/api/auth/register', { body: { name: 'A', email: 'nope', password: '1' } });
   assert.equal(bad.status, 400);
   await signup('Dup');
-  const again = await call('POST', '/api/auth/register', { body: { name: 'Dup', email: 'dup@test.edu', password: 'secret123' } });
+  const again = await call('POST', '/api/auth/register', { body: { name: 'Dup', email: 'dup@test.edu', password: 'secret123', securityQuestion: QUESTION, securityAnswer: 'Rani' } });
   assert.equal(again.status, 409);
 });
 
@@ -395,4 +397,70 @@ test('suggestions work without any key, are student-only and rate limited', asyn
   let last;
   for (let i = 0; i < 20; i++) last = await call('POST', '/api/ai/suggest', { token: student, body: { description: 'ceiling fan not working in the lab' } });
   assert.equal(last.status, 429);
+});
+
+test('registration needs one of the listed security questions and a usable answer', async () => {
+  const register = (extra) => call('POST', '/api/auth/register', { body: { name: 'Samir', email: 'samir@test.edu', password: 'secret123', ...extra } });
+  assert.equal((await register({})).status, 400);
+  assert.equal((await register({ securityQuestion: 'Made-up question?', securityAnswer: 'Rani' })).status, 400);
+  assert.equal((await register({ securityQuestion: QUESTION, securityAnswer: 'ab' })).status, 400);
+  const ok = await register({ securityQuestion: QUESTION, securityAnswer: 'Rani' });
+  assert.equal(ok.status, 201);
+  assert.equal(ok.data.user.security_set, true);
+});
+
+test('security question reset: right answer changes the password and ends all sessions', async () => {
+  const student = await signup('Reena');
+  const email = 'reena@test.edu';
+  const reset = (body) => call('POST', '/api/auth/reset-password', { body: { email, password: 'brandnew1', ...body } });
+
+  const asked = await call('GET', `/api/auth/security-question?email=${email}`);
+  assert.equal(asked.data.question, QUESTION);
+
+  assert.equal((await reset({ answer: 'Tommy' })).status, 400);
+  assert.equal((await reset({ answer: 'rani', password: 'short' })).status, 400); // the new password is validated
+  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'secret123' } })).status, 200); // unchanged so far
+
+  // Case and extra spaces do not matter.
+  assert.equal((await reset({ answer: '  RANI ' })).status, 200);
+  assert.equal((await call('GET', '/api/me', { token: student })).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'secret123' } })).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'brandnew1' } })).status, 200);
+});
+
+test('security question reset does not reveal accounts, locks after wrong answers, and skips admins', async () => {
+  await signup('Rohan');
+  const question = (email) => call('GET', `/api/auth/security-question?email=${email}`);
+
+  // Unknown emails and admins look like any other account, and always get the same question.
+  const ghost = (await question('nobody@test.edu')).data.question;
+  assert.ok(SECURITY_QUESTIONS.includes(ghost));
+  assert.equal((await question('nobody@test.edu')).data.question, ghost);
+  assert.ok(SECURITY_QUESTIONS.includes((await question('admin@test.edu')).data.question));
+  const wrong = (email, answer) => call('POST', '/api/auth/reset-password', { body: { email, answer, password: 'brandnew1' } });
+  assert.equal((await wrong('nobody@test.edu', 'anything')).status, 400);
+  assert.equal((await wrong('admin@test.edu', 'adminpass')).status, 400);
+
+  // Five wrong answers lock the account's reset, even for the right answer.
+  for (let i = 0; i < 5; i++) assert.equal((await wrong('rohan@test.edu', 'wrong')).status, 400);
+  assert.equal((await wrong('rohan@test.edu', 'Rani')).status, 429);
+  assert.equal((await call('POST', '/api/auth/login', { body: { email: 'rohan@test.edu', password: 'secret123' } })).status, 200);
+});
+
+test('signed-in users can set a security question with their current password', async () => {
+  const id = createUser(db, { name: 'Old', email: 'old@test.edu', password: 'oldpass1' }); // created before the feature
+  const token = (await call('POST', '/api/auth/login', { body: { email: 'old@test.edu', password: 'oldpass1' } })).data.token;
+  assert.equal((await call('GET', '/api/me', { token })).data.security_set, false);
+  assert.ok(id);
+
+  // No question yet means no reset is possible for this account.
+  assert.equal((await call('POST', '/api/auth/reset-password', { body: { email: 'old@test.edu', answer: 'x', password: 'brandnew1' } })).status, 400);
+
+  const put = (body) => call('PUT', '/api/me/security-question', { token, body });
+  assert.equal((await put({ password: 'wrong-pass', question: QUESTION, answer: 'Rani' })).status, 403);
+  assert.equal((await put({ password: 'oldpass1', question: 'Made-up?', answer: 'Rani' })).status, 400);
+  assert.equal((await put({ password: 'oldpass1', question: QUESTION, answer: 'Rani' })).status, 200);
+  assert.equal((await call('GET', '/api/me', { token })).data.security_set, true);
+  assert.equal((await call('PUT', '/api/me/security-question', { body: {} })).status, 401);
+  assert.equal((await call('POST', '/api/auth/reset-password', { body: { email: 'old@test.edu', answer: 'rani', password: 'brandnew1' } })).status, 200);
 });

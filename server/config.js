@@ -48,3 +48,13 @@ export const ACTIVE_STATUSES = ['open', 'assigned', 'in_progress', 'awaiting_con
 
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+// Chosen at registration; the answer (never the question text alone) is what proves who owns an account.
+export const SECURITY_QUESTIONS = [
+  'What was the name of your first pet?',
+  'In which town or city were you born?',
+  'What is the name of your favourite school teacher?',
+  'What was the name of your first school?',
+  'What was your childhood nickname?',
+  'What is the title of your favourite book?',
+];
