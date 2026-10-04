@@ -78,6 +78,17 @@ The seeded admin password is public in this README. Set your own with `ADMIN_PAS
 
 Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/campusfix.db`).
 
+### Optional: AI report helper
+
+With an Anthropic API key, the report form shows **Improve with AI**. It reads the student's rough description and suggests a category, a clearer wording and a safety warning. Nothing is applied until the student taps **Use this**.
+
+```bash
+cp .env.example .env     # then put your key in ANTHROPIC_API_KEY
+npm start                # loads .env automatically
+```
+
+Without a key the button is simply hidden and everything else works. The key stays in `.env` (git-ignored). The helper is student-only and limited to 6 requests a minute per student. The model's answer is re-validated on the server (the category must be a real one) before it reaches the form. Only the description text and the chosen place are sent. The model defaults to `claude-opus-5-5` and can be changed with `AI_MODEL`.
+
 ### Opening it from another computer or phone
 
 `npm start` prints an `On your network:` address such as `http://192.168.1.20:3000`. Other devices must use that address, never `localhost` (which means their own machine), and must be on the same Wi-Fi. Allow Node.js through the Windows firewall if asked. Some campus or public Wi-Fi blocks device-to-device traffic; a phone hotspot works as a fallback.
@@ -137,7 +148,7 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
 - Staff and admin accounts are created by the seed script; there is no account-management UI, email verification or password reset.
-- Not built on purpose: AI auto-categorisation and anonymous reporting. Both risk being decoration or misleading without more time.
+- The AI helper only suggests; it never files or changes a report by itself, and it can be wrong. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
 
@@ -145,7 +156,7 @@ Embedding-based text and photo matching, manual merge for admins, notifications,
 
 ## Credits
 
-Express, multer, qrcode, and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
+Express, multer, qrcode, the Anthropic SDK (optional AI helper), and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
 
 The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. CampusFix is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
 
