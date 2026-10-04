@@ -3,6 +3,7 @@ import { h, toast } from './dom.js';
 import { currentPath, go, homeFor, matchRoute } from './router.js';
 import { authView } from './views/auth.js';
 import './views/admin.js';
+import './views/insights.js';
 import './views/issues.js';
 import './views/report.js';
 
