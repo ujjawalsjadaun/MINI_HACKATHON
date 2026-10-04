@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 const TOKEN_KEY = 'campusfix.token';
 
 export const session = {
@@ -29,12 +31,12 @@ export async function api(path, { method = 'GET', body, form } = {}) {
   try {
     res = await fetch(`/api${path}`, { method, headers, body: form ?? (body && JSON.stringify(body)) });
   } catch {
-    throw new ApiError(0, 'Cannot reach the server. Check your connection and try again.');
+    throw new ApiError(0, t('Cannot reach the server. Check your connection and try again.'));
   }
   const data = res.status === 204 ? null : await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && session.token) window.dispatchEvent(new Event('auth:expired'));
-    throw new ApiError(res.status, data?.error ?? 'Request failed');
+    throw new ApiError(res.status, t(data?.error ?? 'Request failed'));
   }
   return data;
 }

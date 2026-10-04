@@ -1,3 +1,5 @@
+import { currentLocale, t } from './i18n.js';
+
 // Tiny DOM builder. Text always goes through textContent, so user-submitted
 // descriptions can never inject markup.
 export function h(tag, props = {}, ...children) {
@@ -23,10 +25,10 @@ export function toast(message, kind = 'info') {
 }
 
 export const formatDate = (ms) =>
-  new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  new Date(ms).toLocaleString(currentLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 export const label = (text) => text.replace(/_/g, ' ');
 
 export function badge(text, cls) {
-  return h('span', { class: `badge ${cls}` }, label(text));
+  return h('span', { class: `badge ${cls}` }, t(label(text)));
 }

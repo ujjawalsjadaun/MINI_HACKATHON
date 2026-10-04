@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { h, toast } from '../dom.js';
 import { go, startSession } from '../router.js';
+import { t } from '../i18n.js';
 import { getMeta } from './shared.js';
 
 function signInCard() {
@@ -10,7 +11,7 @@ function signInCard() {
   function draw() {
     const isLogin = mode === 'login';
     const error = h('p', { class: 'error', role: 'alert' });
-    const submit = h('button', { class: 'primary', type: 'submit' }, isLogin ? 'Sign in' : 'Create account');
+    const submit = h('button', { class: 'primary', type: 'submit' }, t(isLogin ? 'Sign in' : 'Create account'));
     const name = h('input', { id: 'name', autocomplete: 'name', required: true, minlength: 2 });
     const email = h('input', { id: 'email', type: 'email', autocomplete: 'email', required: true });
     const password = h('input', {
@@ -19,9 +20,10 @@ function signInCard() {
     });
 
     // Chosen now so the password can be reset later without email.
-    const question = h('select', { id: 'sec-q', required: true }, h('option', { value: '' }, 'Choose a question'));
+    const question = h('select', { id: 'sec-q', required: true }, h('option', { value: '' }, t('Choose a question')));
     const answer = h('input', { id: 'sec-a', required: true, minlength: 3, maxlength: 60, autocomplete: 'off' });
-    if (!isLogin) getMeta(api).then((m) => question.append(...m.securityQuestions.map((q) => h('option', { value: q }, q)))).catch(() => {});
+    // The option value stays English because that is what the server checks; only the shown text is translated.
+    if (!isLogin) getMeta(api).then((m) => question.append(...m.securityQuestions.map((q) => h('option', { value: q }, t(q))))).catch(() => {});
 
     const form = h('form', {
       novalidate: false,
@@ -40,24 +42,24 @@ function signInCard() {
         }
       },
     },
-    !isLogin && [h('label', { for: 'name' }, 'Full name'), name],
-    h('label', { for: 'email' }, 'Email'), email,
-    h('label', { for: 'password' }, 'Password'), password,
-    !isLogin && h('p', { class: 'hint' }, 'At least 6 characters.'),
+    !isLogin && [h('label', { for: 'name' }, t('Full name')), name],
+    h('label', { for: 'email' }, t('Email')), email,
+    h('label', { for: 'password' }, t('Password')), password,
+    !isLogin && h('p', { class: 'hint' }, t('At least 6 characters.')),
     !isLogin && [
-      h('label', { for: 'sec-q' }, 'Security question (used if you forget your password)'), question,
-      h('label', { for: 'sec-a' }, 'Your answer'), answer,
-      h('p', { class: 'hint' }, 'Not case-sensitive. Choose something only you know.'),
+      h('label', { for: 'sec-q' }, t('Security question (used if you forget your password)')), question,
+      h('label', { for: 'sec-a' }, t('Your answer')), answer,
+      h('p', { class: 'hint' }, t('Not case-sensitive. Choose something only you know.')),
     ],
-    isLogin && h('p', { class: 'hint' }, h('a', { href: '#/forgot' }, 'Forgot your password?')),
+    isLogin && h('p', { class: 'hint' }, h('a', { href: '#/forgot' }, t('Forgot your password?'))),
     error,
     h('div', { class: 'row', style: 'margin-top:1rem' }, submit,
       h('button', { class: 'secondary', type: 'button', onclick: () => { mode = isLogin ? 'register' : 'login'; draw(); } },
-        isLogin ? 'New here? Register' : 'Have an account? Sign in')));
+        t(isLogin ? 'New here? Register' : 'Have an account? Sign in'))));
 
     card.replaceChildren(
-      h('h1', {}, isLogin ? 'Sign in to CampusFix' : 'Create your account'),
-      h('p', { class: 'muted' }, 'Report broken lights, Wi-Fi, leaks and more. Track every complaint until it is fixed.'),
+      h('h1', {}, t(isLogin ? 'Sign in to CampusFix' : 'Create your account')),
+      h('p', { class: 'muted' }, t('Report broken lights, Wi-Fi, leaks and more. Track every complaint until it is fixed.')),
       form,
     );
   }
@@ -68,25 +70,25 @@ function signInCard() {
 
 // Facts and live notices from the host institute's official site (see server/institute.js for sources).
 function aboutPanel() {
-  const panel = h('aside', { class: 'card about', 'aria-label': 'About the institute' });
+  const panel = h('aside', { class: 'card about', 'aria-label': t('About the institute') });
   api('/institute').then((info) => {
     // h() flattens lists and skips false, which replaceChildren does not.
     panel.replaceChildren(...h('div', {},
-      h('h2', {}, `About ${info.short}`),
-      h('p', {}, info.status, '. ', info.established, '.'),
-      h('p', { class: 'muted' }, info.campus),
-      h('h3', {}, 'Vision'), h('p', {}, info.vision),
-      h('h3', {}, 'Mission'), h('ul', {}, info.mission.map((m) => h('li', {}, m))),
+      h('h2', {}, t('About {name}', { name: info.short })),
+      h('p', {}, t(info.status), '. ', t(info.established), '.'),
+      h('p', { class: 'muted' }, t(info.campus)),
+      h('h3', {}, t('Vision')), h('p', {}, t(info.vision)),
+      h('h3', {}, t('Mission')), h('ul', {}, info.mission.map((m) => h('li', {}, t(m)))),
       info.notices.length > 0 && [
-        h('h3', {}, 'Latest notices from the institute'),
+        h('h3', {}, t('Latest notices from the institute')),
         h('ul', { class: 'notices' }, info.notices.map((n) => h('li', {},
           h('a', { href: n.url, target: '_blank', rel: 'noopener' }, n.title),
           n.date && h('span', { class: 'hint' }, ` - ${n.date}`)))),
       ],
-      h('p', { class: 'hint' }, `${info.address}. Phone ${info.phone}.`),
-      h('p', { class: 'hint' }, 'Source: ',
-        info.sources.flatMap((s, i) => [i > 0 && ', ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, s.label)]),
-        ` (retrieved ${info.retrieved}). CampusFix is a student project, not an official service of the institute.`)).childNodes);
+      h('p', { class: 'hint' }, `${info.address}. ${t('Phone {phone}.', { phone: info.phone })}`),
+      h('p', { class: 'hint' }, t('Source: '),
+        info.sources.flatMap((s, i) => [i > 0 && ', ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, t(s.label))]),
+        t(' (retrieved {date}). CampusFix is a student project, not an official service of the institute.', { date: info.retrieved }))).childNodes);
   }).catch(() => panel.remove()); // the panel is a bonus: the sign-in form works without it
   return panel;
 }
@@ -104,7 +106,7 @@ export function forgotView() {
     const answer = h('input', { id: 'reset-answer', autocomplete: 'off', required: true, maxlength: 100 });
     const password = h('input', { id: 'new-password', type: 'password', autocomplete: 'new-password', required: true, minlength: 6 });
     const error = h('p', { class: 'error', role: 'alert' });
-    const button = h('button', { class: 'primary', type: 'submit' }, 'Set new password');
+    const button = h('button', { class: 'primary', type: 'submit' }, t('Set new password'));
     step.replaceChildren(h('form', {
       onsubmit: async (e) => {
         e.preventDefault();
@@ -112,7 +114,7 @@ export function forgotView() {
         button.disabled = true;
         try {
           await api('/auth/reset-password', { method: 'POST', body: { email: email.value, answer: answer.value, password: password.value } });
-          toast('Password changed. Sign in with your new password.');
+          toast(t('Password changed. Sign in with your new password.'));
           go('/login');
         } catch (err) {
           error.textContent = err.message;
@@ -120,18 +122,18 @@ export function forgotView() {
         }
       },
     },
-    h('div', { class: 'notice' }, h('strong', {}, question)),
-    h('label', { for: 'reset-answer' }, 'Your answer'), answer,
-    h('label', { for: 'new-password' }, 'New password'), password,
-    h('p', { class: 'hint' }, 'At least 6 characters. You will be signed out on all devices. Admin accounts cannot be reset this way.'), error,
+    h('div', { class: 'notice' }, h('strong', {}, t(question))),
+    h('label', { for: 'reset-answer' }, t('Your answer')), answer,
+    h('label', { for: 'new-password' }, t('New password')), password,
+    h('p', { class: 'hint' }, t('At least 6 characters. You will be signed out on all devices. Admin accounts cannot be reset this way.')), error,
     h('div', { class: 'row', style: 'margin-top:1rem' }, button)));
     answer.focus();
   };
 
   return h('div', { class: 'narrow' },
     h('div', { class: 'card' },
-      h('h1', {}, 'Forgot your password?'),
-      h('p', { class: 'muted' }, 'Answer the security question you chose when you registered.'),
+      h('h1', {}, t('Forgot your password?')),
+      h('p', { class: 'muted' }, t('Answer the security question you chose when you registered.')),
       h('form', {
         onsubmit: async (e) => {
           e.preventDefault();
@@ -142,8 +144,8 @@ export function forgotView() {
           } catch (err) { askError.textContent = err.message; }
         },
       },
-      h('label', { for: 'ask-email' }, 'Your account email'), email, askError,
-      h('div', { class: 'row', style: 'margin-top:1rem' }, h('button', { class: 'primary', type: 'submit' }, 'Show my question'))),
+      h('label', { for: 'ask-email' }, t('Your account email')), email, askError,
+      h('div', { class: 'row', style: 'margin-top:1rem' }, h('button', { class: 'primary', type: 'submit' }, t('Show my question')))),
       step),
-    h('p', {}, h('a', { href: '#/login' }, '< Back to sign in')));
+    h('p', {}, h('a', { href: '#/login' }, t('< Back to sign in'))));
 }
