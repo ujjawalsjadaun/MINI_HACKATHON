@@ -64,13 +64,18 @@ The label is critical (60+), high (45+), medium (25+) or low. The SLA clock paus
 
 Requires **Node.js 22.13 or newer** (uses the built-in `node:sqlite`). No database server and no API keys are needed.
 
+**On Windows, just double-click `start.bat`.** It installs the packages the first time, creates the demo accounts and data on the first run, opens the browser at http://localhost:3000, and restarts the site by itself if it ever stops. Keep its window open (minimise it); closing the window stops the site.
+
+To have the site **start by itself whenever you sign in to Windows**, double-click `autostart-on.bat` once. It puts a shortcut in your Startup folder that runs `start.bat` in a minimised window; `autostart-off.bat` removes it.
+
+Or from a terminal, on any system:
+
 ```bash
 npm install
-npm run seed      # creates demo accounts and data
 npm start         # http://localhost:3000  (use PORT=3001 npm start if 3000 is taken)
 ```
 
-If you pulled a newer version, delete the `data/` folder before `npm run seed`, because the schema has changed.
+The first start fills an empty database with the demo accounts and issues (set `NO_AUTO_SEED=1` to start empty); `npm run seed` does the same by hand. If you pulled a newer version, delete the `data/` folder first, because the schema has changed.
 
 Demo accounts created by the seed (change the admin with `ADMIN_EMAIL` / `ADMIN_PASSWORD`):
 
@@ -124,11 +129,11 @@ The helper is student-only and limited to 20 requests a minute per student. The 
 
 `npm start` prints an `On your network:` address such as `http://192.168.1.20:3000`. Other devices must use that address, never `localhost` (which means their own machine), and must be on the same Wi-Fi. Allow Node.js through the Windows firewall if asked. Some campus or public Wi-Fi blocks device-to-device traffic; a phone hotspot works as a fallback.
 
-On a fresh clone, run `npm install` and `npm run seed` first. Without the seed there are no accounts, and the server says so at startup.
+On a fresh clone, `start.bat` (or `npm install` then `npm start`) sets everything up, including the demo accounts. The `On your network:` address changes when the computer joins a different Wi-Fi, so print QR stickers from the address shown at the time.
 
 ### QR tags on a phone
 
-Sign in as admin, open **QR tags**, and enter the address phones can reach this computer at (for example `http://192.168.1.20:3000`, since phones cannot open `localhost`). Print the page or scan a sticker directly from the screen. A scan while signed out goes through sign-in and then lands on the pre-filled form.
+Sign in as admin and open **QR tags**. When you are on `localhost`, the page fills in this computer's network address by itself (phones cannot open `localhost`) and lists any other addresses it found; it warns if the address is still `localhost`. Print the page or scan a sticker directly from the screen. A scan while signed out goes through sign-in and then lands on the pre-filled form.
 
 ## 3-minute demo script
 

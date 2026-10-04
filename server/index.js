@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { lanAddresses } from './network.js';
 
 const port = Number(process.env.PORT) || 3000;
@@ -16,8 +18,15 @@ try {
 }
 
 const db = openDb();
+// First run on a new computer: fill in the demo accounts and issues so the site is usable straight away.
+// Set NO_AUTO_SEED=1 to start with an empty database instead.
 if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
-  console.warn('No accounts exist yet, so nobody can sign in. Run "npm run seed" first.');
+  if (process.env.NO_AUTO_SEED) {
+    console.warn('No accounts exist yet, so nobody can sign in. Run "npm run seed" first.');
+  } else {
+    console.log('First run: creating the demo accounts and issues...');
+    execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/seed.js', import.meta.url))], { stdio: 'inherit' });
+  }
 }
 
 const server = createApp(db).listen(port, () => {
