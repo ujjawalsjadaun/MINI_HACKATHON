@@ -42,7 +42,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg) url('/assets/campus-bg.svg') center bottom / cover no-repeat fixed; color: var(--text); }
 h1, h2, h3 { line-height: 1.25; margin: 0 0 .5rem; font-family: Georgia, "Times New Roman", serif; }
 h1 { font-size: 1.7rem; color: var(--brand); padding-bottom: .4rem; margin-bottom: .9rem; border-bottom: 3px solid var(--accent); display: inline-block; }
 h2 { font-size: 1.2rem; }
@@ -181,3 +181,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .ai-box { border-left-color: var(--accent); }
 .ai-box.urgent { border-left-color: var(--danger); }
 .ai-btn { white-space: nowrap; }
+
+/* Campus backdrop: keep content readable on top of the illustration */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(243, 244, 247, .35), rgba(243, 244, 247, .6)); }
+main { background: rgba(255, 255, 255, .0); }
+@media (prefers-color-scheme: dark) { body::before { background: linear-gradient(rgba(10, 14, 22, .55), rgba(10, 14, 22, .75)); } }
+@media print { body { background: #fff; } body::before { display: none; } }

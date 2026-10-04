@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Illustration of hills and an academic building">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ec5ee"/>
+      <stop offset=".55" stop-color="#d7e8f7"/>
+      <stop offset="1" stop-color="#f6efd9"/>
+    </linearGradient>
+    <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".75"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1280" cy="170" r="70" fill="#fff6d6" opacity=".85"/>
+  <g fill="#fff" opacity=".8">
+    <ellipse cx="330" cy="150" rx="150" ry="26"/><ellipse cx="430" cy="130" rx="100" ry="22"/>
+    <ellipse cx="900" cy="210" rx="170" ry="24"/><ellipse cx="1010" cy="190" rx="90" ry="20"/>
+  </g>
+  <path fill="#7e9cc4" d="M0 520 L140 430 L260 500 L420 360 L560 480 L720 390 L880 500 L1040 370 L1200 470 L1360 380 L1500 460 L1600 410 V900 H0Z"/>
+  <path fill="url(#mist)" d="M0 470 H1600 V620 H0Z"/>
+  <path fill="#5f8a7a" d="M0 610 L120 540 L300 600 L480 500 L640 590 L820 520 L1000 600 L1180 510 L1380 590 L1600 530 V900 H0Z"/>
+  <path fill="url(#mist)" d="M0 560 H1600 V680 H0Z" opacity=".7"/>
+  <path fill="#3f7a52" d="M0 700 L180 640 L360 690 L560 630 L760 690 L960 640 L1160 695 L1380 640 L1600 690 V900 H0Z"/>
+  <!-- academic building -->
+  <g transform="translate(470 560)">
+    <rect x="0" y="80" width="660" height="140" fill="#f4ecd8"/>
+    <rect x="0" y="70" width="660" height="14" fill="#12306b"/>
+    <rect x="230" y="10" width="200" height="214" fill="#efe3c3"/>
+    <polygon points="215,10 330,-40 445,10" fill="#12306b"/>
+    <rect x="320" y="-70" width="20" height="40" fill="#c8962e"/>
+    <g fill="#12306b" opacity=".85">
+      <rect x="30" y="110" width="40" height="55"/><rect x="90" y="110" width="40" height="55"/><rect x="150" y="110" width="40" height="55"/>
+      <rect x="470" y="110" width="40" height="55"/><rect x="530" y="110" width="40" height="55"/><rect x="590" y="110" width="40" height="55"/>
+      <rect x="270" y="40" width="40" height="60"/><rect x="350" y="40" width="40" height="60"/>
+    </g>
+    <g fill="#fff"><rect x="296" y="130" width="68" height="94"/></g>
+    <g fill="#c8962e"><rect x="228" y="130" width="8" height="94"/><rect x="424" y="130" width="8" height="94"/><rect x="260" y="130" width="8" height="94"/><rect x="392" y="130" width="8" height="94"/></g>
+    <rect x="-20" y="220" width="700" height="12" fill="#c9bf9f"/>
+  </g>
+  <rect y="790" width="1600" height="110" fill="#2f6a43"/>
+  <path fill="#e9dfbf" d="M740 792 H860 L1000 900 H600Z"/>
+  <g fill="#245536"><circle cx="150" cy="740" r="60"/><rect x="143" y="740" width="14" height="70"/>
+    <circle cx="1450" cy="730" r="70"/><rect x="1443" y="730" width="14" height="80"/>
+    <circle cx="300" cy="770" r="45"/><circle cx="1300" cy="765" r="48"/></g>
+</svg>
