@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { tokenize, similarity, findDuplicate, MATCH_THRESHOLD } from '../server/dedupe.js';
+import { createAssistant, suggestWithRules } from '../server/ai.js';
 import { priorityOf } from '../server/priority.js';
 import { openDb } from '../server/db.js';
 
@@ -94,4 +95,41 @@ test('an overdue issue outranks the same issue inside its deadline', () => {
   const late = priorityOf({ ...base, createdAt: now - 30 * 3_600_000 }, now);
   assert.ok(late.score >= fresh.score + 20);
   assert.ok(late.reasons.some((r) => /deadline/.test(r)));
+});
+
+test('rule-based suggestions pick the category, flag danger and keep the place', () => {
+  const cases = [
+    ['Wifi router keeps dropping in the lab', 'wifi'],
+    ['water leaking from the ceiling pipe', 'water'],
+    ['toilet is dirty and smells bad', 'sanitation'],
+    ['projector is not working in the seminar hall', 'classroom'],
+    ['bench is broken near the stairs', 'furniture'],
+    ['something odd happened here today', 'other'],
+  ];
+  for (const [description, expected] of cases) assert.equal(suggestWithRules({ description }).category, expected, description);
+
+  assert.equal(suggestWithRules({ description: 'Exposed wire sparking near the switch board' }).urgent, true);
+  assert.equal(suggestWithRules({ description: 'Light is not working' }).urgent, false);
+  assert.equal(suggestWithRules({ description: 'geyser is cold', location: 'Papum' }).category, 'hostel');
+
+  const tidy = suggestWithRules({ description: '  fan   is   dead ', location: 'B-II' });
+  assert.equal(tidy.description, 'Fan is dead. Location: B-II.');
+  assert.equal(suggestWithRules({ description: 'Fan is dead in B-II', location: 'B-II' }).description, 'Fan is dead in B-II.');
+});
+
+test('a local model is used when it answers well and replaced by the rules when it does not', async () => {
+  const reply = (body, ok = true) => async () => ({ ok, status: ok ? 200 : 500, json: async () => ({ message: { content: JSON.stringify(body) } }) });
+  const good = { category: 'wifi', description: 'Router drops connection.', urgent: false, reason: 'Network fault' };
+  const input = { description: 'router keeps dropping in the lab', location: 'B-I' };
+
+  const viaModel = await createAssistant({ model: 'test-model', fetchImpl: reply(good) }).suggest(input);
+  assert.equal(viaModel.source, 'local model');
+  assert.equal(viaModel.category, 'wifi');
+
+  // An invented category, a server error, and an unreachable server all fall back to the rules.
+  for (const fetchImpl of [reply({ ...good, category: 'made-up' }), reply(good, false), async () => { throw new Error('refused'); }]) {
+    const out = await createAssistant({ model: 'test-model', fetchImpl }).suggest(input);
+    assert.equal(out.source, 'built-in rules');
+    assert.equal(out.category, 'wifi');
+  }
 });

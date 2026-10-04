@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createApp } from '../server/app.js';
-import { createAssistant } from '../server/ai.js';
 import { createUser } from '../server/auth.js';
 import { openDb } from '../server/db.js';
 
@@ -14,7 +13,7 @@ const db = openDb(':memory:');
 before(async () => {
   uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'campusfix-'));
   createUser(db, { name: 'Admin', email: 'admin@test.edu', password: 'adminpass', role: 'admin' });
-  server = createApp(db, { uploadDir, assistant: null }).listen(0);
+  server = createApp(db, { uploadDir }).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://localhost:${server.address().port}`;
 });
@@ -376,36 +375,24 @@ test('the assigned team or an admin acknowledges an issue once, and students see
   assert.equal(seen.issue.status, 'assigned');
 });
 
-test('the AI report helper is optional, student-only, rate limited and never trusted blindly', async () => {
+test('suggestions work without any key, are student-only and rate limited', async () => {
   const student = await signup('Zara');
-  // Without a configured assistant the feature reports itself as off.
-  assert.equal((await call('GET', '/api/ai/status', { token: student })).data.enabled, false);
-  assert.equal((await call('POST', '/api/ai/suggest', { token: student, body: { description: 'Fan is not working in room' } })).status, 503);
+  const status = (await call('GET', '/api/ai/status', { token: student })).data;
+  assert.equal(status.enabled, true);
+  assert.equal(status.engine, 'built-in rules');
 
-  let reply = { category: 'electrical', description: 'Ceiling fan not working', urgent: false, reason: 'Fan is electrical' };
-  const fake = { messages: { create: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(reply) }] }) } };
-  const withAi = createApp(db, { uploadDir, assistant: createAssistant({ client: fake }) }).listen(0);
-  await new Promise((r) => withAi.once('listening', r));
-  const url = `http://localhost:${withAi.address().port}/api/ai/`;
-  const post = (token, body) => fetch(`${url}suggest`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  try {
-    const ok = await post(student, { description: 'fan not working in the lab', location: 'B-I' });
-    assert.equal(ok.status, 200);
-    assert.deepEqual(await ok.json(), reply);
+  const ok = await call('POST', '/api/ai/suggest', { token: student, body: { description: 'ceiling fan not working in the lab', location: 'B-I' } });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.category, 'electrical');
+  assert.equal(ok.data.source, 'built-in rules');
+  assert.match(ok.data.description, /Location: B-I/);
 
-    assert.equal((await post(student, { description: 'short' })).status, 400);
-    assert.equal((await post(await adminLogin(), { description: 'fan not working in the lab' })).status, 403);
+  assert.equal((await call('POST', '/api/ai/suggest', { token: student, body: { description: 'short' } })).status, 400);
+  assert.equal((await call('POST', '/api/ai/suggest', { body: { description: 'ceiling fan not working' } })).status, 401);
+  assert.equal((await call('POST', '/api/ai/suggest', { token: await adminLogin(), body: { description: 'ceiling fan not working' } })).status, 403);
 
-    // A made-up category from the model is rejected instead of reaching the form.
-    reply = { ...reply, category: 'not-a-category' };
-    assert.equal((await post(student, { description: 'fan not working in the lab' })).status, 502);
-
-    // 6 requests per minute per student; the 7th is refused.
-    const statuses = [];
-    for (let i = 0; i < 4; i++) statuses.push((await post(student, { description: 'fan not working in the lab' })).status);
-    assert.equal(statuses.at(-1), 429);
-  } finally {
-    withAi.close();
-  }
+  // 20 requests a minute per student; the 21st is refused.
+  let last;
+  for (let i = 0; i < 20; i++) last = await call('POST', '/api/ai/suggest', { token: student, body: { description: 'ceiling fan not working in the lab' } });
+  assert.equal(last.status, 429);
 });
-

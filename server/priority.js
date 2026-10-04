@@ -1,7 +1,7 @@
 import { CATEGORIES } from './config.js';
 
 const HOUR = 3_600_000;
-const URGENT_WORDS = /\b(spark|sparks|sparking|short.?circuit|shock|fire|smoke|flood|flooding|burst|exposed|wire|sewage|overflow|injur|danger|unsafe|collapse)/i;
+export const URGENT_WORDS = /\b(spark|sparks|sparking|short.?circuit|shock|fire|smoke|flood|flooding|burst|exposed|wire|sewage|overflow|injur|danger|unsafe|collapse)/i;
 
 // The clock runs while the team still has work to do. It pauses once a fix is claimed
 // (waiting on the reporter) and stops when resolved.
