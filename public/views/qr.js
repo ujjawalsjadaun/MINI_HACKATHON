@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { h } from '../dom.js';
 import { route } from '../router.js';
+import { placePicker } from './place-picker.js';
 import { getMeta } from './shared.js';
 
 const STORAGE_KEY = 'campusfix.qr-rooms';
@@ -17,7 +18,7 @@ route('/admin/qr', ['admin'], async () => {
   let rooms = loadRooms();
 
   const baseInput = h('input', { id: 'base', value: location.origin, inputmode: 'url' });
-  const roomLocation = h('select', { id: 'room-location' }, m.locations.map((l) => h('option', { value: l }, l)));
+  const picker = placePicker(m.campus);
   const roomName = h('input', { id: 'room-name', maxlength: 100, placeholder: 'e.g. CS-101' });
   const stickers = h('div', { class: 'stickers' });
 
@@ -45,22 +46,23 @@ route('/admin/qr', ['admin'], async () => {
   return h('section', {},
     h('div', { class: 'no-print' },
       h('h1', {}, 'QR location tags'),
-      h('p', { class: 'muted' }, 'Print one sticker per block or room. Scanning opens the report form with the exact location filled in, which keeps duplicate detection accurate.'),
+      h('p', { class: 'muted' }, 'Print one sticker per place, floor or room. Scanning opens the report form with the exact location filled in, which keeps duplicate detection accurate.'),
       h('div', { class: 'card' },
         h('label', { for: 'base' }, 'Address students will reach this app at'),
         baseInput,
         h('p', { class: 'hint' }, 'Phones cannot open "localhost". Use this computer\'s network address, e.g. http://192.168.1.20:3001, or your deployed URL.'),
         h('h2', { style: 'margin-top:1rem' }, 'Add a room sticker'),
         h('div', { class: 'filters' },
-          h('div', {}, h('label', { for: 'room-location' }, 'Block'), roomLocation),
-          h('div', {}, h('label', { for: 'room-name' }, 'Room / spot'), roomName)),
+          h('div', { style: 'flex-basis:100%' }, h('span', { class: 'field-label' }, 'Place and floor'), picker.el),
+          h('div', {}, h('label', { for: 'room-name' }, 'Room / spot (optional)'), roomName)),
         h('div', { class: 'row' },
           h('button', {
             class: 'primary', type: 'button',
             onclick: () => {
-              const room = roomName.value.trim();
+              if (!picker.place) return;
+              const room = [picker.floor, roomName.value.trim()].filter(Boolean).join(', ');
               if (!room) return roomName.focus();
-              rooms.push({ location: roomLocation.value, room });
+              rooms.push({ location: picker.place, room });
               saveRooms(rooms);
               roomName.value = '';
               draw();
