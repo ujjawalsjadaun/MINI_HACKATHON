@@ -1,7 +1,8 @@
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { authRoutes } from './auth.js';
+import { authenticate, authRoutes, requireAdmin } from './auth.js';
+import { buildInsights } from './insights.js';
 import { CATEGORIES, LOCATIONS, STATUSES } from './config.js';
 import { HttpError } from './http.js';
 import { issueRoutes } from './issue-routes.js';
@@ -25,6 +26,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads') } = {}) {
   });
   authRoutes(db, api);
   issueRoutes(db, api, { uploadDir });
+  api.get('/insights', authenticate(db), requireAdmin, (_req, res) => res.json(buildInsights(db)));
 
   app.use('/api', api);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
