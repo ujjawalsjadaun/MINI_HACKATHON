@@ -2,11 +2,14 @@ import { ACTIVE_STATUSES, CATEGORIES, LOCATIONS, URGENCIES } from './config.js';
 import { transaction } from './db.js';
 import { MATCH_THRESHOLD, explainMatch, findDuplicate, normalizeRoom, sameRoomOrUnknown, similarity, tokenize } from './dedupe.js';
 import { HttpError, requireString } from './http.js';
+import { feedbackFor } from './feedback.js';
 import { priorityOf, slaOf } from './priority.js';
 
 const ISSUE_SELECT = `
   SELECT i.*, (SELECT COUNT(*) FROM reports r WHERE r.issue_id = i.id) AS report_count,
-    (SELECT MAX(CASE r.urgency WHEN 'emergency' THEN 2 WHEN 'urgent' THEN 1 ELSE 0 END) FROM reports r WHERE r.issue_id = i.id) AS urgency_level
+    (SELECT MAX(CASE r.urgency WHEN 'emergency' THEN 2 WHEN 'urgent' THEN 1 ELSE 0 END) FROM reports r WHERE r.issue_id = i.id) AS urgency_level,
+    (SELECT COUNT(*) FROM feedback f WHERE f.issue_id = i.id) AS feedback_count,
+    (SELECT ROUND(AVG(f.rating), 1) FROM feedback f WHERE f.issue_id = i.id) AS feedback_avg
   FROM issues i`;
 
 const URGENCY_BY_LEVEL = ['normal', 'urgent', 'emergency'];
@@ -211,5 +214,7 @@ export function getIssueDetail(db, id, viewer) {
     reports: seesAllReports ? reports : reports.filter((r) => r.mine),
     log,
     can_confirm: row.status === 'awaiting_confirmation' && isReporter,
+    can_give_feedback: row.status === 'resolved' && isReporter && viewer.role === 'student',
+    feedback: feedbackFor(db, id, viewer),
   };
 }

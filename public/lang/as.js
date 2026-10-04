@@ -423,4 +423,9 @@ export default {
   "Place and floor": "স্থান আৰু মহলা",
   "Add sticker": "ষ্টিকাৰ যোগ কৰক",
   "Print stickers": "ষ্টিকাৰ প্ৰিণ্ট কৰক",
+
+  // Feedback messages from the server
+  "Only students who reported this issue can leave feedback": "এই সমস্যা জনোৱা ছাত্ৰ-ছাত্ৰীয়েহে মতামত দিব পাৰে",
+  "Feedback opens once the issue is resolved": "সমস্যা সমাধান হোৱাৰ পিছতহে মতামত দিব পাৰি",
+  "Rating must be a whole number from 1 to 5": "ৰেটিং 1ৰ পৰা 5 লৈকে সম্পূৰ্ণ সংখ্যা হ'ব লাগিব",
 };

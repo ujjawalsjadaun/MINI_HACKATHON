@@ -521,3 +521,66 @@ test('a pin dropped on the map is validated, saved with the issue, and adopted b
   assert.deepEqual(meta.mapSize, { width: 1000, height: 640 });
   assert.ok(meta.campus.every((g) => g.places.every((p) => p.map)));
 });
+
+test('students rate the fix once an issue is resolved; each role sees only what it should', async () => {
+  const admin = await adminLogin();
+  const staffId = makeStaff('Fahad', 'IT Services');
+  const fahad = await staffLogin('Fahad');
+  const [a, b, outsider] = await Promise.all(['Fiza', 'Faisal', 'Fenil'].map(signup));
+  const place = { category: 'wifi', location: 'B-IV', detail: 'Lab 5' };
+  const first = await report(a, 'Router in lab 5 keeps rebooting every few minutes', place);
+  const id = first.data.issueId;
+  await report(b, 'Wifi in lab 5 is down, router restarting again and again', place);
+  await call('PATCH', `/api/issues/${id}`, { token: admin, body: { assignee_id: staffId } });
+  const rate = (token, body) => call('POST', `/api/issues/${id}/feedback`, { token, body });
+
+  // Not before the issue is resolved, and not by someone who never reported it.
+  assert.equal((await rate(a, { rating: 5 })).status, 409);
+  await resolveIssue(admin, id, a);
+  assert.equal((await rate(outsider, { rating: 5 })).status, 403);
+  assert.equal((await call('POST', `/api/issues/${id}/feedback`, { token: admin, body: { rating: 5 } })).status, 403);
+  assert.equal((await call('POST', `/api/issues/${id}/feedback`, { body: { rating: 5 } })).status, 401);
+  assert.equal((await call('POST', '/api/issues/99999/feedback', { token: a, body: { rating: 5 } })).status, 404);
+
+  // Ratings are whole numbers from 1 to 5.
+  for (const rating of [0, 6, 3.5, 'great', undefined]) assert.equal((await rate(a, { rating })).status, 400, String(rating));
+
+  assert.equal((await call('GET', `/api/issues/${id}`, { token: a })).data.can_give_feedback, true);
+  assert.equal((await rate(a, { rating: 2, comment: '  Fixed, but it took far too long  ' })).status, 201);
+  assert.equal((await rate(b, { rating: 5 })).status, 201);
+
+  // A student can change their rating; it does not create a second one.
+  const changed = await rate(a, { rating: 4, comment: 'Better than I first thought' });
+  assert.equal(changed.data.count, 2);
+  assert.deepEqual(changed.data.mine, { rating: 4, comment: 'Better than I first thought' });
+  assert.equal(changed.data.average, 4.5);
+
+  // Students see the average and their own rating, never other students' comments.
+  const asStudent = (await call('GET', `/api/issues/${id}`, { token: a })).data;
+  assert.equal(asStudent.feedback.average, 4.5);
+  assert.deepEqual(asStudent.feedback.entries, []);
+  assert.equal(asStudent.issue.feedback_count, 2);
+  assert.equal(asStudent.issue.feedback_avg, 4.5);
+
+  // Staff read the comments without names; admins see who wrote them.
+  const asStaff = (await call('GET', `/api/issues/${id}`, { token: fahad })).data.feedback;
+  assert.equal(asStaff.entries.length, 2);
+  assert.ok(asStaff.entries.every((e) => e.reporter === undefined));
+  const asAdmin = (await call('GET', `/api/issues/${id}`, { token: admin })).data.feedback;
+  assert.deepEqual(asAdmin.entries.map((e) => e.reporter).sort(), ['Faisal', 'Fiza']);
+
+  // Insights summarise ratings and surface low ones with their comments (no names).
+  await rate(b, { rating: 1, comment: 'Went down again next day' });
+  const insights = (await call('GET', '/api/insights', { token: admin })).data;
+  assert.ok(insights.totals.rated >= 2);
+  assert.ok(insights.totals.avg_rating > 0);
+  assert.ok(insights.feedback.by_category.some((c) => c.category === 'wifi'));
+  const low = insights.feedback.low.find((x) => x.id === id);
+  assert.equal(low.comment, 'Went down again next day');
+  assert.equal(low.reporter, undefined);
+  assert.equal((await call('GET', '/api/insights', { token: fahad })).status, 403);
+
+  // An issue that is not resolved again cannot be rated.
+  assert.equal((await call('GET', `/api/issues/${id}`, { token: outsider })).data.can_give_feedback, false);
+});
+

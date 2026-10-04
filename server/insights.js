@@ -53,6 +53,14 @@ export function buildInsights(db, now = Date.now()) {
       SUM(status != 'resolved') AS active, SUM(status = 'resolved') AS resolved
     FROM issues GROUP BY department ORDER BY active DESC`);
 
+  // How students rated the fixes: overall, per category, and the lowest ratings with their comments (no names).
+  const rating = one('SELECT COUNT(*) AS rated, ROUND(AVG(rating), 1) AS average FROM feedback');
+  const ratingByCategory = all(`SELECT i.category, COUNT(*) AS count, ROUND(AVG(f.rating), 1) AS average
+    FROM feedback f JOIN issues i ON i.id = f.issue_id GROUP BY i.category ORDER BY average ASC, count DESC`)
+    .map((r) => ({ ...r, label: CATEGORIES[r.category]?.label ?? r.category }));
+  const lowRated = all(`SELECT i.id, i.title, i.location, f.rating, f.comment FROM feedback f JOIN issues i ON i.id = f.issue_id
+    WHERE f.rating <= 2 ORDER BY f.updated_at DESC LIMIT 10`);
+
   return {
     totals: {
       issues: totals.issues,
@@ -63,6 +71,8 @@ export function buildInsights(db, now = Date.now()) {
       overdue: overdue.length,
       reopens: totals.reopens,
       reopened_issues: totals.reopened_issues,
+      rated: rating.rated,
+      avg_rating: rating.average,
       avg_resolution_hours: totals.avg_resolution_ms == null ? null : Math.round((totals.avg_resolution_ms / 3_600_000) * 10) / 10,
     },
     by_status: byStatus,
@@ -74,5 +84,6 @@ export function buildInsights(db, now = Date.now()) {
     overdue: overdue.slice(0, 10),
     stale: { after_days: STALE_AFTER_DAYS, issues: stale },
     by_department: byDepartment,
+    feedback: { by_category: ratingByCategory, low: lowRated },
   };
 }

@@ -422,4 +422,9 @@ export default {
   "Place and floor": "स्थान और मंज़िल",
   "Add sticker": "स्टिकर जोड़ें",
   "Print stickers": "स्टिकर छापें",
+
+  // Feedback messages from the server
+  "Only students who reported this issue can leave feedback": "केवल वही छात्र फ़ीडबैक दे सकते हैं जिन्होंने यह समस्या दर्ज की है",
+  "Feedback opens once the issue is resolved": "समस्या हल होने के बाद ही फ़ीडबैक दिया जा सकता है",
+  "Rating must be a whole number from 1 to 5": "रेटिंग 1 से 5 के बीच की पूर्ण संख्या होनी चाहिए",
 };

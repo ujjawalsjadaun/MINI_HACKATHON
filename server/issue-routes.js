@@ -4,6 +4,7 @@ import multer from 'multer';
 import { acknowledgeIssue, updateIssue } from './admin.js';
 import { authenticate, requireAdmin, requireRole } from './auth.js';
 import { MAX_PHOTO_BYTES } from './config.js';
+import { submitFeedback } from './feedback.js';
 import { HttpError, wrap } from './http.js';
 import { addMeToo, confirmFix, getIssueDetail, listIssues, nearbyIssues, rejectFix, submitReport, validateReportInput } from './issues.js';
 
@@ -73,6 +74,12 @@ export function issueRoutes(db, router, { uploadDir }) {
   router.post('/issues/:id/confirm', auth, requireRole('student'), wrap((req, res) => {
     confirmFix(db, req.user, idParam(req));
     res.json({ ok: true });
+  }));
+
+  router.post('/issues/:id/feedback', auth, requireRole('student'), wrap((req, res) => {
+    const id = idParam(req);
+    submitFeedback(db, req.user, id, req.body);
+    res.status(201).json(getIssueDetail(db, id, req.user).feedback);
   }));
 
   router.post('/issues/:id/reopen', auth, requireRole('student'), wrap((req, res) => {

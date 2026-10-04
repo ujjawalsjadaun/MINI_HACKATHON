@@ -391,4 +391,9 @@ export default {
   "Place and floor": "স্থান ও তলা",
   "Add sticker": "স্টিকার যোগ করুন",
   "Print stickers": "স্টিকার প্রিন্ট করুন",
+
+  // Feedback messages from the server
+  "Only students who reported this issue can leave feedback": "যে শিক্ষার্থীরা এই সমস্যা জানিয়েছেন শুধু তাঁরাই মতামত দিতে পারেন",
+  "Feedback opens once the issue is resolved": "সমস্যা সমাধান হওয়ার পরেই মতামত দেওয়া যায়",
+  "Rating must be a whole number from 1 to 5": "রেটিং 1 থেকে 5-এর মধ্যে একটি পূর্ণসংখ্যা হতে হবে",
 };

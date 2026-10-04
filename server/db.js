@@ -58,6 +58,18 @@ CREATE TABLE IF NOT EXISTS reports (
   UNIQUE (issue_id, user_id)
 );
 
+-- A student's rating of a resolved issue's fix (1 to 5), one per student per issue, editable.
+CREATE TABLE IF NOT EXISTS feedback (
+  id INTEGER PRIMARY KEY,
+  issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  UNIQUE (issue_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS status_log (
   id INTEGER PRIMARY KEY,
   issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
