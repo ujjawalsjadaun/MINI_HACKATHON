@@ -1,6 +1,6 @@
 import { api } from '../api.js';
-import { h } from '../dom.js';
-import { startSession } from '../router.js';
+import { h, toast } from '../dom.js';
+import { go, startSession } from '../router.js';
 
 export function authView() {
   let mode = 'login';
@@ -38,6 +38,7 @@ export function authView() {
     h('label', { for: 'email' }, 'Email'), email,
     h('label', { for: 'password' }, 'Password'), password,
     !isLogin && h('p', { class: 'hint' }, 'At least 6 characters.'),
+    isLogin && h('p', { class: 'hint' }, h('a', { href: '#/forgot' }, 'Forgot your password?')),
     error,
     h('div', { class: 'row', style: 'margin-top:1rem' }, submit,
       h('button', { class: 'secondary', type: 'button', onclick: () => { mode = isLogin ? 'register' : 'login'; draw(); } },
@@ -51,4 +52,56 @@ export function authView() {
   }
   draw();
   return card;
+}
+
+// Two steps: ask the admin office for a code, then set a new password with it.
+export function forgotView() {
+  const asked = h('div', { 'aria-live': 'polite' });
+  const requestError = h('p', { class: 'error', role: 'alert' });
+  const resetError = h('p', { class: 'error', role: 'alert' });
+  const askEmail = h('input', { id: 'ask-email', type: 'email', autocomplete: 'email', required: true });
+  const email = h('input', { id: 'reset-email', type: 'email', autocomplete: 'email', required: true });
+  const code = h('input', { id: 'code', autocomplete: 'one-time-code', required: true, maxlength: 20, placeholder: 'e.g. K7M2QX9P', style: 'text-transform:uppercase' });
+  const password = h('input', { id: 'new-password', type: 'password', autocomplete: 'new-password', required: true, minlength: 6 });
+
+  const ask = h('form', {
+    onsubmit: async (e) => {
+      e.preventDefault();
+      requestError.textContent = '';
+      try {
+        await api('/auth/forgot', { method: 'POST', body: { email: askEmail.value } });
+        email.value = askEmail.value;
+        asked.replaceChildren(h('div', { class: 'notice ok' },
+          h('strong', {}, 'Request sent. '),
+          'If that email has an account, the admin office can now see your request. Visit them with your college ID card; they will give you a one-time code that works for 30 minutes. Then enter it in step 2.'));
+      } catch (err) { requestError.textContent = err.message; }
+    },
+  },
+  h('label', { for: 'ask-email' }, 'Your account email'), askEmail, requestError,
+  h('div', { class: 'row', style: 'margin-top:1rem' }, h('button', { class: 'primary', type: 'submit' }, 'Request a reset code')), asked);
+
+  const reset = h('form', {
+    onsubmit: async (e) => {
+      e.preventDefault();
+      resetError.textContent = '';
+      try {
+        await api('/auth/reset', { method: 'POST', body: { email: email.value, code: code.value, password: password.value } });
+        toast('Password changed. Sign in with your new password.');
+        go('/login');
+      } catch (err) { resetError.textContent = err.message; }
+    },
+  },
+  h('label', { for: 'reset-email' }, 'Email'), email,
+  h('label', { for: 'code' }, 'Reset code from the admin office'), code,
+  h('label', { for: 'new-password' }, 'New password'), password,
+  h('p', { class: 'hint' }, 'At least 6 characters. You will be signed out on all devices.'), resetError,
+  h('div', { class: 'row', style: 'margin-top:1rem' }, h('button', { class: 'primary', type: 'submit' }, 'Set new password')));
+
+  return h('div', { class: 'narrow' },
+    h('div', { class: 'card' },
+      h('h1', {}, 'Forgot your password?'),
+      h('p', { class: 'muted' }, 'There is no email service in this demo, so the admin office issues reset codes in person.'),
+      h('h2', {}, '1. Ask for a code'), ask),
+    h('div', { class: 'card' }, h('h2', {}, '2. Set a new password'), reset),
+    h('p', {}, h('a', { href: '#/login' }, '< Back to sign in')));
 }
