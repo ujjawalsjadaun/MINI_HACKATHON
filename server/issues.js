@@ -1,6 +1,6 @@
-import { CATEGORIES, LOCATIONS } from './config.js';
+import { ACTIVE_STATUSES, CATEGORIES, LOCATIONS } from './config.js';
 import { transaction } from './db.js';
-import { explainMatch, findDuplicate } from './dedupe.js';
+import { MATCH_THRESHOLD, explainMatch, findDuplicate, normalizeRoom, sameRoomOrUnknown, similarity, tokenize } from './dedupe.js';
 import { HttpError, requireString } from './http.js';
 import { priorityOf } from './priority.js';
 
@@ -34,13 +34,38 @@ export function validateReportInput(body = {}) {
   };
 }
 
-export function suggestSimilar(db, input) {
-  return findDuplicate(db, input).slice(0, 3).map(({ issue, score }) => ({
-    id: issue.id,
-    title: issue.title,
-    score: Math.round(score * 100),
-    report_count: db.prepare('SELECT COUNT(*) AS n FROM reports WHERE issue_id = ?').get(issue.id).n,
-  }));
+// Open issues already reported at this location, most relevant first. Works as soon as a
+// location is chosen; category, room and description sharpen the ranking and the "likely" flag.
+export function nearbyIssues(db, { location, category = '', detail = '', description = '' }) {
+  if (!LOCATIONS.includes(location)) throw new HttpError(400, 'Unknown location');
+  const placeholders = ACTIVE_STATUSES.map(() => '?').join(',');
+  const rows = db.prepare(`${ISSUE_SELECT} WHERE i.location = ? AND i.status IN (${placeholders})`).all(location, ...ACTIVE_STATUSES);
+  const incoming = tokenize(`${description} ${detail}`);
+  const reportsOf = db.prepare('SELECT description FROM reports WHERE issue_id = ?');
+
+  return rows
+    .filter((row) => sameRoomOrUnknown(row.detail, detail))
+    .map((row) => {
+      const known = tokenize(`${row.description} ${row.detail}`);
+      for (const r of reportsOf.all(row.id)) for (const t of tokenize(r.description)) known.add(t);
+      const score = description.trim().length >= 8 ? similarity(incoming, known) : 0;
+      const sameCategory = row.category === category;
+      const sameRoom = Boolean(detail) && Boolean(row.detail) && normalizeRoom(row.detail) === normalizeRoom(detail);
+      return {
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        detail: row.detail,
+        status: row.status,
+        report_count: row.report_count,
+        score: Math.round(score * 100),
+        likely: sameCategory && (score >= MATCH_THRESHOLD || sameRoom),
+        rank: (sameCategory ? 2 : 0) + (sameRoom ? 1 : 0) + score,
+      };
+    })
+    .sort((a, b) => b.rank - a.rank || b.report_count - a.report_count)
+    .slice(0, 5)
+    .map(({ rank, ...issue }) => issue);
 }
 
 // Either merges the report into an existing active issue or opens a new one.

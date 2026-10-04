@@ -5,7 +5,7 @@ import { updateIssue } from './admin.js';
 import { authenticate, requireAdmin } from './auth.js';
 import { MAX_PHOTO_BYTES } from './config.js';
 import { HttpError, wrap } from './http.js';
-import { addMeToo, getIssueDetail, listIssues, submitReport, suggestSimilar, validateReportInput } from './issues.js';
+import { addMeToo, getIssueDetail, listIssues, nearbyIssues, submitReport, validateReportInput } from './issues.js';
 
 const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
@@ -42,10 +42,16 @@ export function issueRoutes(db, router, { uploadDir }) {
       next(err);
     });
 
-  // Called while the student types, to warn them before they file a duplicate.
-  router.post('/issues/similar', auth, wrap((req, res) => {
-    const input = validateReportInput({ ...req.body, description: req.body?.description || 'placeholder text' });
-    res.json(suggestSimilar(db, input));
+  // Called as soon as a location is chosen, so students can join an existing issue
+  // instead of filing a duplicate.
+  router.get('/issues/nearby', auth, wrap((req, res) => {
+    const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+    res.json(nearbyIssues(db, {
+      location: text(req.query.location, 60),
+      category: text(req.query.category, 30),
+      detail: text(req.query.detail, 100),
+      description: text(req.query.description, 600),
+    }));
   }));
 
   router.post('/issues', auth, handleUpload, wrap((req, res) => {

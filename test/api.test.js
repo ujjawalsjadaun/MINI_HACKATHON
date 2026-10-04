@@ -98,11 +98,17 @@ test('different location creates a separate issue', async () => {
 
 test('similar-issue check warns before submitting', async () => {
   const f = await signup('Farid');
-  const { data } = await call('POST', '/api/issues/similar', {
-    token: f, body: { category: 'electrical', location: 'CS Block', description: 'light is not working' },
-  });
+  const query = new URLSearchParams({ location: 'CS Block', category: 'electrical', description: 'light is not working' });
+  const { data } = await call('GET', `/api/issues/nearby?${query}`, { token: f });
   assert.ok(data.length >= 1);
   assert.ok(data[0].report_count >= 3);
+  assert.equal(data[0].likely, true);
+
+  // Only a location is needed: other categories at the place are listed but not "likely".
+  const bare = await call('GET', '/api/issues/nearby?location=CS%20Block', { token: f });
+  assert.ok(bare.data.length >= 1);
+  assert.ok(bare.data.every((i) => i.likely === false));
+  assert.equal((await call('GET', '/api/issues/nearby?location=Moon', { token: f })).status, 400);
 });
 
 test('report validation rejects bad category, location and short text', async () => {

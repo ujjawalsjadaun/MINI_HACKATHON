@@ -28,31 +28,31 @@ route('/report', ['student'], async () => {
   if (taggedLocation) location.value = taggedLocation;
   if (taggedLocation && tag.get('detail')) detail.value = tag.get('detail').slice(0, 100);
 
-  // Before filing, show open issues at the same place that look like the same problem.
+  // As soon as a location is chosen, list what is already open there so the student can
+  // join an existing issue ("Me too") instead of filing a duplicate.
   let timer;
   let lastKey = '';
-  const checkSimilar = () => {
+  const checkNearby = () => {
     clearTimeout(timer);
     timer = setTimeout(async () => {
-      const key = [category.value, location.value, description.value.trim()].join('|');
-      if (!category.value || !location.value || description.value.trim().length < 8 || key === lastKey) return;
+      const query = new URLSearchParams({ location: location.value, category: category.value, detail: detail.value, description: description.value });
+      const key = query.toString();
+      if (!location.value || key === lastKey) return;
       lastKey = key;
       try {
-        const matches = await api('/issues/similar', {
-          method: 'POST',
-          body: { category: category.value, location: location.value, detail: detail.value, description: description.value },
-        });
+        const matches = await api(`/issues/nearby?${query}`);
         similar.replaceChildren(...(matches.length ? [renderMatches(matches)] : []));
       } catch { similar.replaceChildren(); }
-    }, 450);
+    }, 350);
   };
 
   function renderMatches(matches) {
     return h('div', { class: 'notice' },
-      h('strong', {}, 'This may already be reported'),
-      h('p', { class: 'hint' }, 'Confirm an existing issue instead of filing a duplicate. Your confirmation raises its priority.'),
+      h('strong', {}, 'Already reported here. Is this yours?'),
+      h('p', { class: 'hint' }, 'Tap "Me too" to join an existing issue instead of filing a duplicate. You will follow its progress under My complaints, and it moves up the queue.'),
       h('ul', {}, matches.map((x) => h('li', {},
-        h('a', { href: `#/feed` }, x.title), ` - ${x.report_count} report${x.report_count === 1 ? '' : 's'}, ${x.score}% match `,
+        h('strong', {}, x.title), x.detail ? ` (${x.detail})` : '', ` - reported by ${x.report_count} ${x.report_count === 1 ? 'person' : 'people'} `,
+        x.likely && h('span', { class: 'badge count' }, 'likely match'), ' ',
         h('button', {
           type: 'button', class: 'secondary',
           onclick: async (e) => {
@@ -63,10 +63,11 @@ route('/report', ['student'], async () => {
               go('/mine');
             } catch (err) { toast(err.message, 'error'); e.target.disabled = false; }
           },
-        }, 'Me too')))));
+        }, 'Me too, this is mine')))));
   }
 
-  for (const el of [category, location, description, detail]) el.addEventListener('input', checkSimilar);
+  for (const el of [category, location, description, detail]) el.addEventListener('input', checkNearby);
+  checkNearby();
 
   const form = h('form', {
     onsubmit: async (e) => {
