@@ -182,11 +182,22 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .ai-box.urgent { border-left-color: var(--danger); }
 .ai-btn { white-space: nowrap; }
 
-/* Campus backdrop: keep content readable on top of the illustration */
-body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(243, 244, 247, .35), rgba(243, 244, 247, .6)); }
-main { background: rgba(255, 255, 255, .0); }
-@media (prefers-color-scheme: dark) { body::before { background: linear-gradient(rgba(10, 14, 22, .55), rgba(10, 14, 22, .75)); } }
-@media print { body { background: #fff; } body::before { display: none; } }
+/* Campus backdrop: a day scene (night scene in dark mode), slow clouds, and frosted panels so text stays readable */
+body::before { content: ""; position: fixed; inset: 0; z-index: -2; background: linear-gradient(rgba(255, 255, 255, 0), rgba(243, 244, 247, .3)); }
+body::after { content: ""; position: fixed; inset: 0 0 45% 0; z-index: -1; pointer-events: none; background: url('/assets/clouds.svg') 0 0 / 1600px auto repeat-x; opacity: .6; animation: drift 180s linear infinite; }
+@keyframes drift { to { background-position-x: -1600px; } }
+main { width: min(1080px, calc(100% - 1.5rem)); max-width: none; margin: 1rem auto; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .45); background: rgba(243, 244, 247, .66); }
+@supports (backdrop-filter: blur(1px)) { main { backdrop-filter: blur(5px) saturate(1.15); } .card { backdrop-filter: blur(4px); } }
+.card { background: rgba(255, 255, 255, .92); }
+@media (prefers-color-scheme: dark) {
+  body { background-image: url('/assets/campus-bg-night.svg'); }
+  body::before { background: linear-gradient(rgba(8, 12, 24, 0), rgba(8, 12, 24, .35)); }
+  body::after { display: none; }
+  main { border-color: rgba(255, 255, 255, .1); background: rgba(14, 19, 32, .6); }
+  .card { background: rgba(26, 31, 41, .9); }
+}
+@media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
+@media print { body { background: #fff; } body::before, body::after { display: none; } main { background: none; border: 0; backdrop-filter: none; } }
 
 .auth-wrap { display: grid; gap: 1rem; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); align-items: start; max-width: 1040px; margin: 1.5rem auto; }
 .auth-wrap .narrow { margin: 0; }
