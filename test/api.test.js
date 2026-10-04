@@ -404,8 +404,11 @@ test('password reset: the admin office issues a one-time code, wrong codes lock,
   const asked = () => call('POST', '/api/auth/forgot', { body: { email } });
 
   // Same answer for real and unknown accounts, and nothing is created for an unknown one.
-  assert.deepEqual((await asked()).data, { ok: true });
-  assert.deepEqual((await call('POST', '/api/auth/forgot', { body: { email: 'nobody@test.edu' } })).data, { ok: true });
+  const real = (await asked()).data;
+  const unknown = (await call('POST', '/api/auth/forgot', { body: { email: 'nobody@test.edu' } })).data;
+  assert.deepEqual(Object.keys(real).sort(), Object.keys(unknown).sort());
+  assert.equal(real.ok, true);
+  assert.equal(unknown.ok, true);
   await asked(); // a repeat does not create a second pending request
   const pending = (await call('GET', '/api/admin/resets', { token: admin })).data.filter((r) => r.email === email);
   assert.equal(pending.length, 1);
@@ -434,4 +437,38 @@ test('password reset: the admin office issues a one-time code, wrong codes lock,
   assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'secret123' } })).status, 401);
   assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'brandnew1' } })).status, 200);
   assert.equal((await call('GET', '/api/admin/resets', { token: admin })).data.some((r) => r.email === email), false);
+});
+
+test('password reset: the waiting browser is told when an admin approves, then sets the password itself', async () => {
+  const admin = await adminLogin();
+  await signup('Tanvi');
+  const email = 'tanvi@test.edu';
+  const ask = async () => (await call('POST', '/api/auth/forgot', { body: { email } })).data.request_token;
+  const status = async (token) => (await call('GET', `/api/auth/forgot/status?token=${token}`)).data.status;
+  const reset = (body) => call('POST', '/api/auth/reset', { body: { password: 'tokenpass1', ...body } });
+
+  const token = await ask();
+  assert.equal(await status(token), 'pending');
+  assert.equal(await status('0'.repeat(48)), 'pending'); // unknown tokens look the same as waiting ones
+  assert.equal((await reset({ token })).status, 400); // not approved yet
+
+  const request = (await call('GET', '/api/admin/resets', { token: admin })).data.find((r) => r.email === email);
+  await call('POST', `/api/admin/resets/${request.id}/code`, { token: admin });
+  assert.equal(await status(token), 'approved');
+
+  // Only the browser that holds the token can finish; a guessed token cannot.
+  assert.equal((await reset({ token: 'f'.repeat(48) })).status, 400);
+  assert.equal((await reset({ token, password: 'short' })).status, 400);
+  assert.equal((await reset({ token })).status, 200);
+  assert.equal((await reset({ token })).status, 400); // single use
+  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'tokenpass1' } })).status, 200);
+
+  // Asking again hands the newest browser the token and invalidates the older one.
+  const first = await ask();
+  const second = await ask();
+  const again = (await call('GET', '/api/admin/resets', { token: admin })).data.filter((r) => r.email === email);
+  assert.equal(again.length, 1);
+  await call('POST', `/api/admin/resets/${again[0].id}/code`, { token: admin });
+  assert.equal(await status(first), 'pending');
+  assert.equal(await status(second), 'approved');
 });

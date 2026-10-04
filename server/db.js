@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS password_resets (
   salt TEXT,
   expires_at INTEGER,
   attempts INTEGER NOT NULL DEFAULT 0,
-  used_at INTEGER
+  used_at INTEGER,
+  request_hash TEXT
 );
 
 CREATE TABLE IF NOT EXISTS status_log (
@@ -83,11 +84,18 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
   return db;
 }
 
-// Databases created before acknowledgements existed get the new columns on startup.
+// Databases created before a column existed get it on startup.
+const ADDED_COLUMNS = {
+  issues: [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT']],
+  password_resets: [['request_hash', 'TEXT']],
+};
+
 function addMissingColumns(db) {
-  const have = new Set(db.prepare('PRAGMA table_info(issues)').all().map((c) => c.name));
-  for (const [name, type] of [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT']]) {
-    if (!have.has(name)) db.exec(`ALTER TABLE issues ADD COLUMN ${name} ${type}`);
+  for (const [table, columns] of Object.entries(ADDED_COLUMNS)) {
+    const have = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [name, type] of columns) {
+      if (!have.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+    }
   }
 }
 
