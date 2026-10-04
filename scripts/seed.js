@@ -8,6 +8,7 @@ import { createUser } from '../server/auth.js';
 import { SECURITY_QUESTIONS } from '../server/config.js';
 import { openDb } from '../server/db.js';
 import { updateIssue } from '../server/admin.js';
+import { submitFeedback } from '../server/feedback.js';
 import { addMeToo, confirmFix, submitReport } from '../server/issues.js';
 
 const DAY = 86_400_000;
@@ -47,12 +48,14 @@ const oldLight = report(chen, 'electrical', 'B-II', 'Tube light broken in the la
 updateIssue(db, admin, oldLight, { assignee_id: ramesh.id }, ago(11));
 updateIssue(db, admin, oldLight, { status: 'awaiting_confirmation', note: 'Tube replaced' }, ago(10.5));
 confirmFix(db, chen, oldLight, ago(10));
+submitFeedback(db, chen, oldLight, { rating: 5, comment: 'Quick fix, thanks.' }, ago(9.5));
 
 // A third B-II electrical fault in 30 days (a different room), so the dashboard flags the block.
 const fan = report(divya, 'electrical', 'B-II', 'Ceiling fan not working in the seminar room', 20, 'CS-102');
 updateIssue(db, admin, fan, { assignee_id: ramesh.id }, ago(19));
 updateIssue(db, admin, fan, { status: 'awaiting_confirmation', note: 'Capacitor replaced' }, ago(18.5));
 confirmFix(db, divya, fan, ago(18));
+submitFeedback(db, divya, fan, { rating: 3, comment: 'It works now, but the fan is noisier than before.' }, ago(17.5));
 
 // The headline scenario: three students, one underlying issue.
 const light = report(asha, 'electrical', 'B-II', 'Tube light broken near the entrance', 4, 'Ground floor', 'normal', { x: 0.255, y: 0.2 });
@@ -72,5 +75,6 @@ report(chen, 'furniture', 'B-III', 'Broken desk and loose bench in the seminar h
 const toilet = report(esha, 'sanitation', 'Subansiri', 'Washroom very dirty and no water for cleaning', 6);
 updateIssue(db, admin, toilet, { status: 'awaiting_confirmation', note: 'Cleaned and water supply restored' }, ago(5.2));
 confirmFix(db, esha, toilet, ago(5));
+submitFeedback(db, esha, toilet, { rating: 2, comment: 'Cleaned, but the water supply failed again after two days.' }, ago(4.5));
 
 console.log(`Seeded.\n  Admin:   ${adminEmail} / ${process.env.ADMIN_PASSWORD ? '(your ADMIN_PASSWORD)' : adminPassword}\n  Student: asha@campusfix.local / student1234 (also bimal, chen, divya, esha)\n  Staff:   ramesh@campusfix.local / staff1234 (also priya, suresh, kavita, arun)`);
