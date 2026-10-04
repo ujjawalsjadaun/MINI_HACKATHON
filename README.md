@@ -15,6 +15,8 @@ CampusFix replaces WhatsApp messages and verbal complaints with one place to rep
 | Which issues need attention first? | A transparent **priority score** (see below). Admins see the exact breakdown behind every ranking. |
 | How urgent is it, really? | The reporter rates a problem **Normal, Urgent or Emergency**. The highest rating on an issue adds a visible amount to its priority (once, not per reporter, so a crowd cannot inflate it), and the team sees every rating. |
 | Where exactly is it? | A **schematic campus map**: tap a building to pick the place and tap anywhere to drop a **pin** on the exact spot. A **Problem map** page shows every open problem as a pin coloured by priority, and each issue page shows where it is. |
+| Hard to find what matters in a long list | The **Campus feed** has **Open** and **Solved** tabs, category chips with counts, a place filter, and problems grouped under their category (most urgent group first). |
+| Was it really fixed well? | After a fix is confirmed, the students who reported it **rate it 1 to 5 stars** with an optional comment and can change it later. Staff read the comments (without names), admins also see who wrote them, and **Insights** shows the average rating, the rating per category and the lowest-rated fixes. |
 | Not everyone reads English | A **language switcher** (English, Hindi, Assamese, Bengali, Odia) in the menu bar. The whole interface switches at once and the choice is remembered. |
 | Nothing happens after reporting | **SLA deadlines per category** (water 24h, electrical 48h, furniture 7 days...). Past the deadline an issue is flagged **overdue** and its priority rises. |
 | "Resolved" tickets that are not | A team can only mark an issue **awaiting confirmation**. A **reporter confirms** the fix (closing it) or **reopens** it. A new report or "me too" on an unconfirmed fix also reopens it. |
@@ -26,7 +28,7 @@ CampusFix replaces WhatsApp messages and verbal complaints with one place to rep
 
 | Role | Can do |
 |---|---|
-| **Student** | Report issues (with photo), join existing issues, track their complaints, confirm or reopen a claimed fix. Sees only their own report text, never other students' names. |
+| **Student** | Report issues (with photo), join existing issues, track their complaints, confirm or reopen a claimed fix, rate a confirmed fix. Sees only their own report text, never other students' names. |
 | **Staff** | Sees **only issues assigned to them**; updates status and adds notes. Cannot assign, close, see other work, see reporter names, or view insights. |
 | **Admin** | Sees everything, assigns issues to named staff, views insights, prints QR tags. Cannot close an issue on a reporter's behalf. |
 
