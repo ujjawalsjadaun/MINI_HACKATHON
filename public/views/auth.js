@@ -82,92 +82,60 @@ function aboutPanel() {
 
 export const authView = () => h('div', { class: 'auth-wrap' }, signInCard(), aboutPanel());
 
-// Ask the admin office to approve a reset. This page waits, and as soon as an admin approves it the
-// new-password form appears. A typed code is the fallback for someone who closed the page.
+// Two steps: a one-time code is emailed to the account address, then the user sets a new password with it.
 export function forgotView() {
-  const POLL_MS = 3000;
-  const WAIT_LIMIT_MS = 30 * 60 * 1000;
-  const requestBox = h('div', { 'aria-live': 'polite' });
-  const requestError = h('p', { class: 'error', role: 'alert' });
+  const sent = h('div', { 'aria-live': 'polite' });
+  const askError = h('p', { class: 'error', role: 'alert' });
+  const resetError = h('p', { class: 'error', role: 'alert' });
   const askEmail = h('input', { id: 'ask-email', type: 'email', autocomplete: 'email', required: true });
-
-  const passwordForm = (id) => {
-    const password = h('input', { id: `pw-${id}`, type: 'password', autocomplete: 'new-password', required: true, minlength: 6 });
-    const error = h('p', { class: 'error', role: 'alert' });
-    const button = h('button', { class: 'primary', type: 'submit' }, 'Set new password');
-    return { password, error, button };
-  };
-
-  async function finish(body, error, button) {
-    error.textContent = '';
-    button.disabled = true;
-    try {
-      await api('/auth/reset', { method: 'POST', body });
-      toast('Password changed. Sign in with your new password.');
-      go('/login');
-    } catch (err) {
-      error.textContent = err.message;
-      button.disabled = false;
-    }
-  }
-
-  function showApproved(token) {
-    const { password, error, button } = passwordForm('token');
-    requestBox.replaceChildren(h('div', { class: 'notice ok' },
-      h('strong', {}, 'Approved by the admin office. '), 'Choose a new password. This works for the next 30 minutes.',
-      h('form', { onsubmit: (e) => { e.preventDefault(); finish({ token, password: password.value }, error, button); } },
-        h('label', { for: 'pw-token' }, 'New password'), password,
-        h('p', { class: 'hint' }, 'At least 6 characters. You will be signed out on all devices.'), error,
-        h('div', { class: 'row', style: 'margin-top:.75rem' }, button))));
-    password.focus();
-  }
-
-  function waitForApproval(token) {
-    const started = Date.now();
-    requestBox.replaceChildren(h('div', { class: 'notice' },
-      h('strong', {}, 'Request sent. Waiting for the admin office to approve it...'),
-      h('p', { class: 'hint' }, 'Visit the admin office with your college ID card. Keep this page open: it updates by itself as soon as they approve, and then asks for your new password.')));
-    const timer = setInterval(async () => {
-      // Stop when the user leaves this page or has waited long enough.
-      if (location.hash !== '#/forgot' || Date.now() - started > WAIT_LIMIT_MS) return clearInterval(timer);
-      try {
-        const { status } = await api(`/auth/forgot/status?token=${encodeURIComponent(token)}`);
-        if (status === 'approved') { clearInterval(timer); showApproved(token); }
-      } catch { /* a network blip: keep waiting */ }
-    }, POLL_MS);
-  }
+  const email = h('input', { id: 'reset-email', type: 'email', autocomplete: 'email', required: true });
+  const code = h('input', { id: 'code', autocomplete: 'one-time-code', required: true, maxlength: 20, placeholder: 'e.g. K7M2QX9P' });
+  const password = h('input', { id: 'new-password', type: 'password', autocomplete: 'new-password', required: true, minlength: 6 });
+  const resetButton = h('button', { class: 'primary', type: 'submit' }, 'Set new password');
+  const askButton = h('button', { class: 'primary', type: 'submit' }, 'Email me a code');
 
   const ask = h('form', {
     onsubmit: async (e) => {
       e.preventDefault();
-      requestError.textContent = '';
+      askError.textContent = '';
+      askButton.disabled = true;
       try {
-        const { request_token: token } = await api('/auth/forgot', { method: 'POST', body: { email: askEmail.value } });
+        const { delivery } = await api('/auth/forgot', { method: 'POST', body: { email: askEmail.value } });
         email.value = askEmail.value;
-        waitForApproval(token);
-      } catch (err) { requestError.textContent = err.message; }
+        sent.replaceChildren(delivery === 'email'
+          ? h('div', { class: 'notice ok' }, h('strong', {}, 'Check your email. '), 'If that address has an account, a code is on its way. It can take a minute and may land in spam. The code works once for 15 minutes.')
+          : h('div', { class: 'notice' }, h('strong', {}, 'Demo mode. '), 'Email sending is not set up on this server, so the code was printed in the server console instead of being emailed. (Set the SMTP settings from the README to send real emails.)'));
+        code.focus();
+      } catch (err) { askError.textContent = err.message; }
+      askButton.disabled = false;
     },
   },
-  h('label', { for: 'ask-email' }, 'Your account email'), askEmail, requestError,
-  h('div', { class: 'row', style: 'margin-top:1rem' }, h('button', { class: 'primary', type: 'submit' }, 'Request a reset')), requestBox);
+  h('label', { for: 'ask-email' }, 'Your registered email'), askEmail, askError,
+  h('div', { class: 'row', style: 'margin-top:1rem' }, askButton), sent);
 
-  // Fallback: a one-time code read out by the admin office.
-  const email = h('input', { id: 'reset-email', type: 'email', autocomplete: 'email', required: true });
-  const code = h('input', { id: 'code', autocomplete: 'one-time-code', required: true, maxlength: 20, placeholder: 'e.g. K7M2QX9P' });
-  const codeForm = passwordForm('code');
-  const withCode = h('details', { class: 'card' },
-    h('summary', {}, 'I already have a code from the admin office'),
-    h('form', { onsubmit: (e) => { e.preventDefault(); finish({ email: email.value, code: code.value, password: codeForm.password.value }, codeForm.error, codeForm.button); } },
-      h('label', { for: 'reset-email' }, 'Email'), email,
-      h('label', { for: 'code' }, 'Reset code'), code,
-      h('label', { for: 'pw-code' }, 'New password'), codeForm.password,
-      codeForm.error, h('div', { class: 'row', style: 'margin-top:.75rem' }, codeForm.button)));
+  const reset = h('form', {
+    onsubmit: async (e) => {
+      e.preventDefault();
+      resetError.textContent = '';
+      resetButton.disabled = true;
+      try {
+        await api('/auth/reset', { method: 'POST', body: { email: email.value, code: code.value, password: password.value } });
+        toast('Password changed. Sign in with your new password.');
+        go('/login');
+      } catch (err) {
+        resetError.textContent = err.message;
+        resetButton.disabled = false;
+      }
+    },
+  },
+  h('label', { for: 'reset-email' }, 'Email'), email,
+  h('label', { for: 'code' }, 'Code from the email'), code,
+  h('label', { for: 'new-password' }, 'New password'), password,
+  h('p', { class: 'hint' }, 'At least 6 characters. You will be signed out on all devices.'), resetError,
+  h('div', { class: 'row', style: 'margin-top:1rem' }, resetButton));
 
   return h('div', { class: 'narrow' },
-    h('div', { class: 'card' },
-      h('h1', {}, 'Forgot your password?'),
-      h('p', { class: 'muted' }, 'There is no email service in this demo, so the admin office confirms who you are and approves the reset.'),
-      ask),
-    withCode,
+    h('div', { class: 'card' }, h('h1', {}, 'Forgot your password?'), h('h2', {}, '1. Get a code'), ask),
+    h('div', { class: 'card' }, h('h2', {}, '2. Set a new password'), reset),
     h('p', {}, h('a', { href: '#/login' }, '< Back to sign in')));
 }

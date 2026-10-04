@@ -188,8 +188,6 @@ main { background: rgba(255, 255, 255, .0); }
 @media (prefers-color-scheme: dark) { body::before { background: linear-gradient(rgba(10, 14, 22, .55), rgba(10, 14, 22, .75)); } }
 @media print { body { background: #fff; } body::before { display: none; } }
 
-.reset-code { font: 700 1.6rem/1.2 ui-monospace, Consolas, monospace; letter-spacing: .15em; color: var(--brand); }
-
 .auth-wrap { display: grid; gap: 1rem; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); align-items: start; max-width: 1040px; margin: 1.5rem auto; }
 .auth-wrap .narrow { margin: 0; }
 .about h2 { margin-bottom: .25rem; }

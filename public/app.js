@@ -15,7 +15,7 @@ const nav = document.getElementById('nav');
 const PUBLIC_PATHS = new Set(['/login', '/forgot']);
 
 const NAV = {
-  admin: [['/admin', 'Issues'], ['/insights', 'Insights'], ['/admin/qr', 'QR tags'], ['/admin/resets', 'Reset requests']],
+  admin: [['/admin', 'Issues'], ['/insights', 'Insights'], ['/admin/qr', 'QR tags']],
   staff: [['/admin', 'My assignments']],
   student: [['/report', 'Report issue'], ['/mine', 'My complaints'], ['/feed', 'Campus feed']],
 };
