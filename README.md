@@ -15,7 +15,7 @@ CampusFix replaces WhatsApp messages and verbal complaints with one place to rep
 | Which issues need attention first? | A transparent **priority score** (see below). Admins see the exact breakdown behind every ranking. |
 | How urgent is it, really? | The reporter rates a problem **Normal, Urgent or Emergency**. The highest rating on an issue adds a visible amount to its priority (once, not per reporter, so a crowd cannot inflate it), and the team sees every rating. |
 | Where exactly is it? | A **schematic campus map**: tap a building to pick the place and tap anywhere to drop a **pin** on the exact spot. A **Problem map** page shows every open problem as a pin coloured by priority, and each issue page shows where it is. |
-| Not everyone reads English | A **language switcher** (English, Hindi, Assamese) in the menu bar. The whole interface switches at once and the choice is remembered. |
+| Not everyone reads English | A **language switcher** (English, Hindi, Assamese, Bengali, Odia) in the menu bar. The whole interface switches at once and the choice is remembered. |
 | Nothing happens after reporting | **SLA deadlines per category** (water 24h, electrical 48h, furniture 7 days...). Past the deadline an issue is flagged **overdue** and its priority rises. |
 | "Resolved" tickets that are not | A team can only mark an issue **awaiting confirmation**. A **reporter confirms** the fix (closing it) or **reopens** it. A new report or "me too" on an unconfirmed fix also reopens it. |
 | No way to track a complaint | Students see a status timeline (open, assigned, in progress, awaiting confirmation, resolved) with team notes. |
@@ -54,7 +54,7 @@ The label is critical (60+), high (45+), medium (25+) or low. The SLA clock paus
 
 - Plain HTML, CSS and JavaScript (no build step) with an institutional look: a navy and gold theme, the host institute's logo and a clear "student project, not an official service" notice on every page.
 - Responsive down to phone width, light and dark themes (the page background is the institute's own campus photo, softened under a translucent overlay, and darkened in dark mode), and a print stylesheet for the QR stickers.
-- Three languages (English, Hindi, Assamese). The English text in the code is the lookup key and falls back to itself, so a missing translation shows English instead of breaking the page. A test fails if any text in the code, the HTML or the server's fixed messages lacks a Hindi or Assamese translation. Names that are not translated on purpose: building names and issue titles or descriptions (written by users), the institute's official notice titles, and server messages that have a name or number built in. The Assamese (and Hindi) text was written by an AI assistant and **should be reviewed by a native speaker** before real use.
+- Five languages (English, Hindi, Assamese, Bengali, Odia). The English text in the code is the lookup key and falls back to itself, so a missing translation shows English instead of breaking the page. A test fails if any text in the code, the HTML or the server's fixed messages lacks a translation in any of the four languages. Names that are not translated on purpose: building names and issue titles or descriptions (written by users), the institute's official notice titles, and server messages that have a name or number built in. The Hindi, Assamese, Bengali and Odia text was written by an AI assistant and **should be reviewed by native speakers** before real use.
 - Keyboard and screen-reader friendly: skip link, labelled form fields, visible focus rings, live regions for results, text alternatives for images and QR codes, and status shown as text as well as colour.
 
 ## Run it
@@ -131,7 +131,7 @@ The seed is built for this walk-through (reset with a fresh `data/` folder and `
 ```
 public/            Vanilla ES-module frontend (no build step)
   index.html styles.css   page shell, theme, print styles
-  app.js router.js api.js dom.js i18n.js   i18n.js: language switching, lang/ holds the Hindi and Assamese dictionaries
+  app.js router.js api.js dom.js i18n.js   i18n.js: language switching, lang/ holds the Hindi, Assamese, Bengali and Odia dictionaries
   assets/          host institute logo (see Credits)
   views/           auth, security, report, issues (student), admin (admin + staff), insights, qr, shared,
                    place-picker (area / place / floor), campus-map (schematic SVG map and pins), map (problem map page)
@@ -167,7 +167,7 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
 - Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password reset uses security questions, which are convenient but weaker than an emailed link.
 - The campus map is a schematic drawing laid out by area, not a survey: building positions are illustrative and not to scale. Issues without a dropped pin are shown faded inside their building.
-- Translations: error messages that have a name or number built in (for example a field-length message) stay in English, dates use the browser's own formatting, and the Hindi and Assamese text needs review by native speakers.
+- Translations: error messages that have a name or number built in (for example a field-length message) stay in English, dates use the browser's own formatting, and the Hindi, Assamese, Bengali and Odia text needs review by native speakers.
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
