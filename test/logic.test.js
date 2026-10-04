@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { tokenize, similarity, findDuplicate, MATCH_THRESHOLD } from '../server/dedupe.js';
 import { createAssistant, suggestWithRules } from '../server/ai.js';
+import { INSTITUTE, latestNotices, parseNotices, resetNoticeCache } from '../server/institute.js';
 import { priorityOf } from '../server/priority.js';
 import { openDb } from '../server/db.js';
 
@@ -132,4 +133,44 @@ test('a local model is used when it answers well and replaced by the rules when 
     assert.equal(out.source, 'built-in rules');
     assert.equal(out.category, 'wifi');
   }
+});
+
+const HOME_HTML = `
+  <a href="/notices/older-notice-about-exams/"><span>Jul</span><span>20</span><span>2026</span><h3>Older notice about exams &amp; results</h3></a>
+  <a href="/notices/newest-tender-notice/"><div>22 Sep</div></a>
+  <a href="/notices/newest-tender-notice/"><span>Sep</span><span>22</span><span>2026</span><p>Newest tender notice for civil work</p></a>
+  <a href="/notices/x/"><b>hi</b></a>
+  <a href="/events/not-a-notice/">Some event name that is long enough</a>`;
+
+test('notices are read from the official home page, newest first, without duplicates or junk', () => {
+  const notices = parseNotices(HOME_HTML);
+  assert.deepEqual(notices.map((n) => n.title), ['Newest tender notice for civil work', 'Older notice about exams & results']);
+  assert.equal(notices[0].date, '22 Sep 2026');
+  assert.equal(notices[0].url, 'https://www.nitap.ac.in/notices/newest-tender-notice/');
+  assert.deepEqual(parseNotices('<html>nothing here</html>'), []);
+});
+
+test('notices are cached, and a failed fetch never breaks the page', async () => {
+  resetNoticeCache();
+  const T = 1.8e12; // a realistic timestamp, far from the cache's starting point
+  let calls = 0;
+  const ok = async () => { calls++; return { ok: true, text: async () => HOME_HTML }; };
+  assert.equal((await latestNotices({ fetchImpl: ok, now: T })).length, 2);
+  await latestNotices({ fetchImpl: ok, now: T + 60_000 });
+  assert.equal(calls, 1);
+
+  // After the cache expires a failure keeps the previous list instead of throwing.
+  const down = async () => { throw new Error('offline'); };
+  assert.equal((await latestNotices({ fetchImpl: down, now: T + 2 * 3_600_000 })).length, 2);
+
+  resetNoticeCache();
+  assert.deepEqual(await latestNotices({ fetchImpl: down, now: T + 9_000_000 }), []);
+  resetNoticeCache();
+});
+
+test('institute facts carry their sources and retrieval date', () => {
+  assert.equal(INSTITUTE.mission.length, 5);
+  assert.match(INSTITUTE.address, /791113/);
+  assert.ok(INSTITUTE.sources.every((x) => x.url.startsWith('https://www.nitap.ac.in/')));
+  assert.match(INSTITUTE.retrieved, /^\d{4}-\d{2}-\d{2}$/);
 });

@@ -5,7 +5,8 @@ import { aiRoutes, createAssistant } from './ai.js';
 import { authenticate, authRoutes, requireAdmin } from './auth.js';
 import { buildInsights } from './insights.js';
 import { CAMPUS, CATEGORIES, LOCATIONS, STATUSES } from './config.js';
-import { HttpError } from './http.js';
+import { HttpError, wrap } from './http.js';
+import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
 import { passwordResetRoutes } from './password-reset.js';
 import { qrRoutes } from './qr.js';
@@ -37,6 +38,8 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
       statuses: STATUSES,
     });
   });
+  // Public: shown on the sign-in page. Notices come live from the official site and may be empty.
+  api.get('/institute', wrap(async (_req, res) => res.json({ ...INSTITUTE, notices: await latestNotices() })));
   authRoutes(db, api);
   passwordResetRoutes(db, api);
   qrRoutes(api);
