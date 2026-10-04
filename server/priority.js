@@ -1,4 +1,4 @@
-import { CATEGORIES } from './config.js';
+import { CATEGORIES, URGENCIES } from './config.js';
 
 const HOUR = 3_600_000;
 export const URGENT_WORDS = /\b(spark|sparks|sparking|short.?circuit|shock|fire|smoke|flood|flooding|burst|exposed|wire|sewage|overflow|injur|danger|unsafe|collapse)/i;
@@ -15,7 +15,7 @@ export function slaOf({ category, createdAt, status }, now = Date.now()) {
 }
 
 // Priority is computed from live data so it escalates as reports pile up and time passes.
-export function priorityOf({ category, description, reportCount, createdAt, status, reopenCount = 0 }, now = Date.now()) {
+export function priorityOf({ category, description, reportCount, createdAt, status, reopenCount = 0, urgency = 'normal' }, now = Date.now()) {
   const reasons = [];
   let score = (CATEGORIES[category]?.severity ?? 1) * 10;
   reasons.push(`category severity +${score}`);
@@ -24,6 +24,12 @@ export function priorityOf({ category, description, reportCount, createdAt, stat
   if (reportCount > 1) {
     score += dupBoost;
     reasons.push(`${reportCount} reports +${dupBoost}`);
+  }
+
+  const rated = URGENCIES[urgency]?.points ?? 0;
+  if (rated > 0) {
+    score += rated;
+    reasons.push(`reporter marked it ${urgency} +${rated}`);
   }
 
   if (URGENT_WORDS.test(description)) {

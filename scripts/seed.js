@@ -39,8 +39,8 @@ staffMember('Suresh', 'Civil & Plumbing');
 staffMember('Kavita', 'Housekeeping');
 const arun = staffMember('Arun', 'Academic Section');
 
-const report = (user, category, location, description, days, detail = '') =>
-  submitReport(db, user, { category, location, detail, description }, null, ago(days)).issueId;
+const report = (user, category, location, description, days, detail = '', urgency = 'normal') =>
+  submitReport(db, user, { category, location, detail, description, urgency }, null, ago(days)).issueId;
 
 // An old B-II light fault, fixed - so the same fault returning shows up as "recurring".
 const oldLight = report(chen, 'electrical', 'B-II', 'Tube light broken in the lab corridor', 12);
@@ -60,8 +60,8 @@ report(bimal, 'electrical', 'B-II', 'Light not working in the corridor', 3);
 addMeToo(db, divya, light, ago(2));
 updateIssue(db, admin, light, { assignee_id: ramesh.id, note: 'Replacement ordered' }, ago(2));
 
-report(divya, 'water', 'Lohit-1', 'Water leaking from ceiling, exposed wire sparking nearby', 1, '2nd floor washroom');
-const wifi = report(esha, 'wifi', 'Central Library', 'Wifi not working on the first floor reading area', 2);
+report(divya, 'water', 'Lohit-1', 'Water leaking from ceiling, exposed wire sparking nearby', 1, '2nd floor washroom', 'emergency');
+const wifi = report(esha, 'wifi', 'Central Library', 'Wifi not working on the first floor reading area', 2, '', 'urgent');
 report(asha, 'wifi', 'Central Library', 'Internet is down near the reading area', 1);
 updateIssue(db, admin, wifi, { status: 'in_progress', assignee_id: priya.id, note: 'Access point being replaced' }, ago(1));
 

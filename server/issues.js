@@ -1,12 +1,15 @@
-import { ACTIVE_STATUSES, CATEGORIES, LOCATIONS } from './config.js';
+import { ACTIVE_STATUSES, CATEGORIES, LOCATIONS, URGENCIES } from './config.js';
 import { transaction } from './db.js';
 import { MATCH_THRESHOLD, explainMatch, findDuplicate, normalizeRoom, sameRoomOrUnknown, similarity, tokenize } from './dedupe.js';
 import { HttpError, requireString } from './http.js';
 import { priorityOf, slaOf } from './priority.js';
 
 const ISSUE_SELECT = `
-  SELECT i.*, (SELECT COUNT(*) FROM reports r WHERE r.issue_id = i.id) AS report_count
+  SELECT i.*, (SELECT COUNT(*) FROM reports r WHERE r.issue_id = i.id) AS report_count,
+    (SELECT MAX(CASE r.urgency WHEN 'emergency' THEN 2 WHEN 'urgent' THEN 1 ELSE 0 END) FROM reports r WHERE r.issue_id = i.id) AS urgency_level
   FROM issues i`;
+
+const URGENCY_BY_LEVEL = ['normal', 'urgent', 'emergency'];
 
 function withPriority(row, now = Date.now()) {
   return {
@@ -19,6 +22,7 @@ function withPriority(row, now = Date.now()) {
       createdAt: row.created_at,
       status: row.status,
       reopenCount: row.reopen_count,
+      urgency: URGENCY_BY_LEVEL[row.urgency_level ?? 0],
     }, now),
   };
 }
@@ -28,9 +32,12 @@ export function validateReportInput(body = {}) {
   const location = requireString(body.location, 'Location', { max: 60 });
   if (!CATEGORIES[category]) throw new HttpError(400, 'Unknown category');
   if (!LOCATIONS.includes(location)) throw new HttpError(400, 'Unknown location');
+  const urgency = body.urgency ?? 'normal';
+  if (!URGENCIES[urgency]) throw new HttpError(400, 'Unknown urgency');
   return {
     category,
     location,
+    urgency,
     detail: typeof body.detail === 'string' ? body.detail.trim().slice(0, 100) : '',
     description: requireString(body.description, 'Description', { min: 8, max: 600 }),
   };
@@ -118,8 +125,8 @@ export function submitReport(db, user, input, photo, now = Date.now()) {
         throw new HttpError(409, 'You have already reported this issue');
       }
       const reason = explainMatch(input.category, input.location, best.score);
-      db.prepare('INSERT INTO reports (issue_id, user_id, description, photo, match_reason, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-        .run(issueId, user.id, input.description, photo, reason, now);
+      db.prepare('INSERT INTO reports (issue_id, user_id, description, photo, match_reason, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(issueId, user.id, input.description, photo, reason, input.urgency, now);
       db.prepare('UPDATE issues SET updated_at = ? WHERE id = ?').run(now, issueId);
       reopenIfAwaiting(db, issueId, 'A new report came in after the fix was claimed', now);
       return { issueId, merged: true, reason };
@@ -132,8 +139,8 @@ export function submitReport(db, user, input, photo, now = Date.now()) {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(title, input.category, input.location, input.detail, input.description, department, now, now);
     const issueId = Number(info.lastInsertRowid);
-    db.prepare('INSERT INTO reports (issue_id, user_id, description, photo, created_at) VALUES (?, ?, ?, ?, ?)')
-      .run(issueId, user.id, input.description, photo, now);
+    db.prepare('INSERT INTO reports (issue_id, user_id, description, photo, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(issueId, user.id, input.description, photo, input.urgency, now);
     db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(issueId, 'open', `Reported and routed to ${department}`, 'system', now);
     return { issueId, merged: false, reason: null };

@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS reports (
   description TEXT NOT NULL,
   photo TEXT,
   match_reason TEXT,
+  urgency TEXT NOT NULL DEFAULT 'normal',
   created_at INTEGER NOT NULL,
   UNIQUE (issue_id, user_id)
 );
@@ -76,6 +77,7 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
 
 // Databases created before a column existed get it on startup.
 const ADDED_COLUMNS = {
+  reports: [['urgency', "TEXT NOT NULL DEFAULT 'normal'"]],
   users: [['security_question', 'TEXT'], ['security_hash', 'TEXT'], ['security_salt', 'TEXT']],
   issues: [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT']],
 };

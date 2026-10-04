@@ -174,3 +174,15 @@ test('institute facts carry their sources and retrieval date', () => {
   assert.ok(INSTITUTE.sources.every((x) => x.url.startsWith('https://www.nitap.ac.in/')));
   assert.match(INSTITUTE.retrieved, /^\d{4}-\d{2}-\d{2}$/);
 });
+
+test('the reporter urgency rating adds a visible, capped amount to the priority', () => {
+  const base = { category: 'wifi', description: 'router keeps dropping', reportCount: 1, createdAt: Date.now(), status: 'open' };
+  const normal = priorityOf(base);
+  const urgent = priorityOf({ ...base, urgency: 'urgent' });
+  const emergency = priorityOf({ ...base, urgency: 'emergency' });
+  assert.equal(urgent.score - normal.score, 10);
+  assert.equal(emergency.score - normal.score, 25);
+  assert.ok(emergency.reasons.some((r) => /reporter marked it emergency \+25/.test(r)));
+  assert.ok(!normal.reasons.some((r) => /reporter marked/.test(r)));
+  assert.equal(priorityOf({ ...base, urgency: 'made-up' }).score, normal.score); // unknown values add nothing
+});

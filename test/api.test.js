@@ -464,3 +464,28 @@ test('signed-in users can set a security question with their current password', 
   assert.equal((await call('PUT', '/api/me/security-question', { body: {} })).status, 401);
   assert.equal((await call('POST', '/api/auth/reset-password', { body: { email: 'old@test.edu', answer: 'rani', password: 'brandnew1' } })).status, 200);
 });
+
+test('students rate urgency; the highest rating counts once and shows in the priority reasons', async () => {
+  const [a, b, c] = await Promise.all(['Urvi', 'Utkarsh', 'Uma'].map(signup));
+  const place = { category: 'wifi', location: 'B-III' };
+  const scoreOf = async (id, token) => (await call('GET', `/api/issues/${id}`, { token })).data.issue.priority;
+
+  assert.equal((await report(a, 'Wifi keeps dropping in room 12', { ...place, urgency: 'shouting' })).status, 400);
+
+  const normal = await report(a, 'Wifi keeps dropping in room 12', { ...place, detail: 'Room 12' });
+  const baseline = (await scoreOf(normal.data.issueId, a)).score;
+  assert.ok(!(await scoreOf(normal.data.issueId, a)).reasons.some((r) => /reporter marked/.test(r)));
+
+  // A second report on the same issue that is rated emergency lifts the issue.
+  const merged = await report(b, 'Internet is down in room 12, router not working', { ...place, detail: 'Room 12', urgency: 'emergency' });
+  assert.equal(merged.data.merged, true);
+  const lifted = await scoreOf(normal.data.issueId, a);
+  assert.ok(lifted.reasons.some((r) => /reporter marked it emergency \+25/.test(r)));
+  assert.ok(lifted.score > baseline + 25 - 1); // +25 for urgency (the extra report adds a little more)
+
+  // A later, calmer report does not lower it, and "urgent" ratings are not added on top of the emergency one.
+  await report(c, 'Wifi down in room 12 again today', { ...place, detail: 'Room 12', urgency: 'urgent' });
+  const after = await scoreOf(normal.data.issueId, a);
+  assert.equal(after.reasons.filter((r) => /reporter marked/.test(r)).length, 1);
+  assert.ok(after.reasons.some((r) => /emergency/.test(r)));
+});

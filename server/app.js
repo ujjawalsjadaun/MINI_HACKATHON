@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { aiRoutes, createAssistant } from './ai.js';
 import { authenticate, authRoutes, requireAdmin } from './auth.js';
 import { buildInsights } from './insights.js';
-import { CAMPUS, CATEGORIES, LOCATIONS, SECURITY_QUESTIONS, STATUSES } from './config.js';
+import { CAMPUS, CATEGORIES, LOCATIONS, SECURITY_QUESTIONS, STATUSES, URGENCIES } from './config.js';
 import { HttpError, wrap } from './http.js';
 import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
@@ -37,6 +37,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
       campus: CAMPUS,
       statuses: STATUSES,
       securityQuestions: SECURITY_QUESTIONS,
+      urgencies: Object.entries(URGENCIES).map(([key, u]) => ({ key, points: u.points })),
     });
   });
   // Public: shown on the sign-in page. Notices come live from the official site and may be empty.

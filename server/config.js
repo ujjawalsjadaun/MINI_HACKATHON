@@ -58,3 +58,11 @@ export const SECURITY_QUESTIONS = [
   'What was your childhood nickname?',
   'What is the title of your favourite book?',
 ];
+
+// How urgent the reporter says a problem is. It adds `points` to the priority score; an issue uses the highest
+// rating among its reporters (not the sum), so a crowd cannot inflate it.
+export const URGENCIES = {
+  normal: { points: 0 },
+  urgent: { points: 10 },
+  emergency: { points: 25 },
+};
