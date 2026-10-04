@@ -8,7 +8,7 @@ CampusFix replaces WhatsApp messages and verbal complaints with one place to rep
 
 | Problem in the brief | How CampusFix handles it |
 |---|---|
-| Students don't know who to report to | Pick a category and location. The issue is **auto-routed** to the right team (Electrical, IT, Civil & Plumbing, Housekeeping, ...). |
+| Students don't know who to report to | Pick a category, a place from the NIT Arunachal Pradesh campus map (blocks, hostels, residences, facilities) and a floor. The issue is **auto-routed** to the right team (Electrical, IT, Civil & Plumbing, Housekeeping, ...). |
 | Exact locations are hard to describe | **QR location tags.** Print a sticker per block or room; scanning it opens the report form with the location already filled in. |
 | The same problem is reported many times | **Prevented before filing.** As soon as a location is chosen, the form lists what is already open there ("reported by 3 people, is this yours?"). One tap on **Me too** joins that issue. |
 | ...and any that still slip through | **Grouped automatically.** An open issue with the same category and location (and not a different room) absorbs the new report if the wording is similar. The reason is stored and shown to admins. |
@@ -86,11 +86,11 @@ Sign in as admin, open **QR tags**, and enter the address phones can reach this 
 
 The seed is built for this walk-through (reset with a fresh `data/` folder and `npm run seed` before presenting).
 
-1. **Scan to report.** As admin, open **QR tags** and show the **CS Block** sticker (scan it with a phone on the same Wi-Fi, or open its link). Sign in as **Chen**: the form opens with CS Block already filled in, and lists "Tube light broken near the entrance, reported by 3 people". Tap **Me too, this is mine**. The report count goes to 4 instead of a duplicate being filed.
+1. **Scan to report.** As admin, open **QR tags** and show the **B-II** sticker (scan it with a phone on the same Wi-Fi, or open its link). Sign in as **Chen**: the form opens with B-II already filled in, and lists "Tube light broken near the entrance, reported by 3 people". Tap **Me too, this is mine**. The report count goes to 4 instead of a duplicate being filed.
 2. **Prioritise and assign.** Sign in as **Admin**. The queue is sorted by priority: the sparking-wire water leak and the tube light (now 4 reports, overdue) are **critical**. Open the water leak to show the score breakdown (severity, danger words, past deadline), then assign it to **Suresh** from the named staff list.
 3. **Staff see only their work.** Sign in as **Suresh**: his queue shows only that leak. Set it to *in progress*, then *Fixed - ask reporters to confirm*. Note he has no Insights or QR links.
 4. **Nobody closes a ticket for the reporter.** Sign in as **Divya** (who reported the leak): *My complaints* asks whether it is really fixed. Also try **Bimal**, whose projector fix is waiting: choose **No, reopen it** and watch it return to the team with higher priority.
-5. **Insights.** As admin, open **Insights**: CS Block electrical is a **recurring problem** (3 in 30 days), plus overdue issues, reopened fixes, resolution time per category and duplicates merged.
+5. **Insights.** As admin, open **Insights**: B-II electrical is a **recurring problem** (3 in 30 days), plus overdue issues, reopened fixes, resolution time per category and duplicates merged.
 
 ## Architecture
 

@@ -18,7 +18,18 @@ route('/report', ['student'], async () => {
   const location = h('select', { id: 'location', required: true },
     h('option', { value: '' }, 'Choose a location'),
     m.campus.map((g) => h('optgroup', { label: g.group }, g.places.map((p) => h('option', { value: p.name }, p.name)))));
-  const detail = h('input', { id: 'detail', maxlength: 100, placeholder: 'e.g. 2nd floor, near the stairs' });
+  const floor = h('select', { id: 'floor' }, h('option', { value: '' }, 'Choose a place first'));
+  floor.disabled = true;
+  const floorLabel = (f) => (f === 'G' ? 'Ground floor' : `Floor ${f}`);
+  const places = Object.fromEntries(m.campus.flatMap((g) => g.places.map((p) => [p.name, p.floors])));
+  const updateFloors = () => {
+    const floors = places[location.value] ?? [];
+    floor.replaceChildren(
+      h('option', { value: '' }, floors.length ? 'Floor (optional)' : 'No floors here'),
+      floors.map((f) => h('option', { value: floorLabel(f) }, floorLabel(f))));
+    floor.disabled = !floors.length;
+  };
+  const detail = h('input', { id: 'detail', maxlength: 80, placeholder: 'e.g. room number, near the stairs' });
   const description = h('textarea', { id: 'description', required: true, minlength: 8, maxlength: 600, placeholder: 'What is wrong? Be specific so the right team can fix it.' });
   const photo = h('input', { id: 'photo', type: 'file', accept: PHOTO_TYPES.join(',') });
   const error = h('p', { class: 'error', role: 'alert' });
@@ -28,6 +39,7 @@ route('/report', ['student'], async () => {
   // Opened from a QR sticker: location (and room) arrive pre-filled.
   const taggedLocation = m.locations.includes(tag.get('location')) ? tag.get('location') : '';
   if (taggedLocation) location.value = taggedLocation;
+  updateFloors();
   if (taggedLocation && tag.get('detail')) detail.value = tag.get('detail').slice(0, 100);
 
   // As soon as a location is chosen, list what is already open there so the student can
@@ -68,6 +80,7 @@ route('/report', ['student'], async () => {
         }, 'Me too, this is mine')))));
   }
 
+  location.addEventListener('input', updateFloors);
   for (const el of [category, location, description, detail]) el.addEventListener('input', checkNearby);
   checkNearby();
 
@@ -82,7 +95,7 @@ route('/report', ['student'], async () => {
       const data = new FormData();
       data.append('category', category.value);
       data.append('location', location.value);
-      data.append('detail', detail.value);
+      data.append('detail', [floor.value, detail.value.trim()].filter(Boolean).join(', '));
       data.append('description', description.value);
       if (file) data.append('photo', file);
 
@@ -103,6 +116,7 @@ route('/report', ['student'], async () => {
   },
   h('label', { for: 'category' }, 'Category'), category,
   h('label', { for: 'location' }, 'Location'), location,
+  h('label', { for: 'floor' }, 'Floor'), floor,
   h('label', { for: 'detail' }, 'Room / spot (optional)'), detail,
   h('label', { for: 'description' }, 'Description'), description,
   h('label', { for: 'photo' }, 'Photo (optional)'), photo,
