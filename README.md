@@ -80,11 +80,13 @@ Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/
 
 ### Forgot password
 
-There is no email service, so resets go through the admin office, the way a campus would do it in person:
+There is no email service, so the admin office approves resets after checking who is asking, the way a campus would in person:
 
-1. The user opens **Forgot your password?** on the sign-in page and enters their email. The reply is always the same, so it cannot be used to find out who has an account.
-2. An admin opens **Reset requests**, checks who is asking (for example their college ID) and taps **Generate code**. The 8-character code is shown once, stored only as a hash, works once and expires after 30 minutes.
-3. The user enters email, code and a new password. Five wrong codes lock that code, and a successful reset signs the user out on every device. Admin accounts are not reset this way; re-run the seed with `ADMIN_PASSWORD` on a fresh database instead.
+1. The user opens **Forgot your password?** on the sign-in page and enters their email. The reply looks the same whether or not the account exists, so it cannot be used to find out who has one. The page then waits.
+2. An admin opens **Reset requests** (the list refreshes by itself), checks the person's college ID and taps **Approve reset**.
+3. The waiting page notices within a few seconds and shows the new-password form. Only the browser that made the request can finish the reset, and the approval is open for 30 minutes.
+
+If the user closed the page, approving also produces a one-time 8-character code that the admin can read out; it is shown once, stored only as a hash, works once, and locks after five wrong tries. A successful reset signs the user out on every device. Admin accounts are not reset this way; re-run the seed with `ADMIN_PASSWORD` on a fresh database instead.
 
 ### Smart suggestions on the report form
 
@@ -153,7 +155,7 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - Duplicate matching is rule-based, not semantic, and does not compare photos. It can miss duplicates described in very different words. Admins cannot yet merge issues by hand.
 - "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
-- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password resets work, but the code is handed over by the admin office instead of being emailed.
+- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password resets work through admin approval instead of an emailed link.
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
