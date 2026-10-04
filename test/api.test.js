@@ -177,3 +177,14 @@ test('insights are admin-only and report merged duplicates and recurring problem
   assert.ok(data.recurring.some((r) => r.category === 'electrical' && r.location === 'CS Block' && r.occurrences >= 2));
   assert.ok(data.hotspots.find((h) => h.location === 'CS Block').issues >= 2);
 });
+
+test('repeated failed logins are throttled, and responses carry security headers', async () => {
+  await signup('Lena');
+  const attempt = () => call('POST', '/api/auth/login', { body: { email: 'lena@test.edu', password: 'wrong-password' } });
+  for (let i = 0; i < 5; i++) assert.equal((await attempt()).status, 401);
+  assert.equal((await attempt()).status, 429);
+
+  const res = await fetch(`${base}/api/meta`);
+  assert.match(res.headers.get('content-security-policy'), /script-src 'self'/);
+  assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+});
