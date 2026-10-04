@@ -24,6 +24,15 @@ route('/report', ['student'], async () => {
   const error = h('p', { class: 'error', role: 'alert' });
   const submit = h('button', { class: 'primary', type: 'submit' }, 'Submit report');
   const similar = h('div', { 'aria-live': 'polite' });
+
+  // The reporter's own urgency rating; it adds to the priority score, and the highest rating on an issue counts once.
+  const URGENCY_TEXT = { normal: ['Normal', 'Can wait a few days'], urgent: ['Urgent', 'Affects many people or daily work'], emergency: ['Emergency', 'Danger to people: sparks, flooding, broken stairs'] };
+  let urgency = 'normal';
+  const urgencyBox = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': 'How urgent is it?' });
+  const drawUrgency = () => urgencyBox.replaceChildren(...m.urgencies.map((u) => h('label', { class: `chip urgency-${u.key}${u.key === urgency ? ' on' : ''}` },
+    h('input', { type: 'radio', name: 'urgency', value: u.key, checked: u.key === urgency, onchange: () => { urgency = u.key; drawUrgency(); } }),
+    URGENCY_TEXT[u.key][0], h('small', {}, URGENCY_TEXT[u.key][1]))));
+  drawUrgency();
   const aiBox = h('div', { 'aria-live': 'polite' });
   const aiButton = h('button', { class: 'secondary ai-btn', type: 'button' }, '✨ Smart suggest');
 
@@ -91,6 +100,7 @@ route('/report', ['student'], async () => {
           h('button', { class: 'primary', type: 'button', onclick: () => {
             category.value = s.category;
             description.value = s.description;
+            if (s.urgent) { urgency = 'emergency'; drawUrgency(); }
             aiBox.replaceChildren();
             checkNearby();
             toast('Suggestion applied. Check it before you submit.');
@@ -119,6 +129,7 @@ route('/report', ['student'], async () => {
       data.append('location', picker.place);
       data.append('detail', [picker.floor, detail.value.trim()].filter(Boolean).join(', '));
       data.append('description', description.value);
+      data.append('urgency', urgency);
       if (file) data.append('photo', file);
 
       submit.disabled = true;
@@ -142,6 +153,8 @@ route('/report', ['student'], async () => {
   h('label', { for: 'description' }, 'Description'), description,
   aiEnabled && h('div', { class: 'row', style: 'margin-top:.5rem' }, aiButton, h('span', { class: 'hint' }, 'Not sure which category fits or how to word it? Get a suggestion.')),
   aiEnabled && aiBox,
+  h('span', { class: 'field-label' }, 'How urgent is it?'), urgencyBox,
+  h('p', { class: 'hint' }, 'Be honest: this raises the priority, and the team can see every rating.'),
   h('label', { for: 'photo' }, 'Photo (optional)'), photo,
   h('p', { class: 'hint' }, 'JPG, PNG or WebP, up to 5 MB.'),
   similar, error,

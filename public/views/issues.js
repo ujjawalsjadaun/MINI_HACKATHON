@@ -74,6 +74,12 @@ route('/issue/:id', ['student'], async ({ id }) => {
   return h('section', {},
     h('p', {}, h('a', { href: '#/mine' }, '< Back to my complaints')),
     issueCard(issue, m),
+    h('div', { class: 'card' },
+      h('h2', {}, 'Why this priority'),
+      h('p', {}, `${issue.priority.label}, score ${issue.priority.score}: ${issue.priority.reasons.join(', ')}.`),
+      h('p', { class: issue.sla.overdue ? 'error' : 'muted' }, issue.sla.overdue
+        ? `The team has passed its ${issue.sla.hours}h deadline for this kind of problem${issue.sla.overdue_hours > 0 ? ` by ${issue.sla.overdue_hours} hours` : ''}.`
+        : `The team's deadline for this kind of problem is ${issue.sla.hours} hours from the report.`)),
     issue.acknowledged_at && issue.status !== 'resolved' && h('div', { class: 'notice ok' },
       h('strong', {}, 'The team has seen your report. '), `Acknowledged by ${issue.acknowledged_by} on ${formatDate(issue.acknowledged_at)}.`),
     h('div', { class: 'card' },

@@ -204,3 +204,5 @@ main { width: min(1080px, calc(100% - 1.5rem)); max-width: none; margin: 1rem au
 
 .sitefooter a { color: #f0d58a; }
 
+.chip.urgency-urgent.on { background: #b45309; border-color: #b45309; color: #fff; }
+.chip.urgency-emergency.on { background: #b3261e; border-color: #b3261e; color: #fff; }
