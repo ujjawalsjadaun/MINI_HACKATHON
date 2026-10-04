@@ -201,12 +201,18 @@ test('insights are admin-only and report merged duplicates and recurring problem
   await resolveIssue(admin.token, issues[0].id, tokens.Asha);
   const again = await report(student, 'Tube light broken near the entrance', { location: 'CS Block' });
   assert.equal(again.data.merged, false);
+  // A third, unrelated electrical fault in another room: 3 in 30 days makes the block a recurring spot.
+  const third = await report(student, 'Projector socket sparks when plugged in', { location: 'CS Block', detail: 'CS-205' });
+  assert.equal(third.data.merged, false);
 
   const { status, data } = await call('GET', '/api/insights', { token: admin.token });
   assert.equal(status, 200);
   assert.ok(data.totals.duplicates_merged >= 2);
   assert.ok(data.totals.avg_resolution_hours !== null);
-  assert.ok(data.recurring.some((r) => r.category === 'electrical' && r.location === 'CS Block' && r.occurrences >= 2));
+  assert.ok(data.recurring.some((r) => r.category === 'electrical' && r.location === 'CS Block' && r.occurrences >= 3));
+  assert.deepEqual(data.recurring_rule, { min: 3, days: 30 });
+  assert.ok(data.resolution_by_category.some((r) => r.category === 'electrical' && r.avg_hours >= 0));
+  assert.ok(data.totals.reopens >= 0);
   assert.ok(data.hotspots.find((h) => h.location === 'CS Block').issues >= 2);
 });
 
@@ -315,4 +321,17 @@ test('staff see and update only issues assigned to them, and cannot assign or vi
   assert.equal((await call('GET', '/api/staff', { token: s })).status, 403);
   assert.equal((await report(tara, 'Staff trying to file a report as a student')).status, 403);
   assert.equal((await call('PATCH', `/api/issues/${mine}`, { token: s, body: { status: 'open' } })).status, 403);
+});
+
+test('two occurrences, or three spread beyond 30 days, are not flagged as recurring', async () => {
+  const { buildInsights } = await import('../server/insights.js');
+  const fresh = openDb(':memory:');
+  const add = (location, createdAt) => fresh.prepare("INSERT INTO issues (title,category,location,description,department,created_at,updated_at) VALUES ('t','wifi',?,'down','x',?,?)").run(location, createdAt, createdAt);
+  const now = Date.now();
+  const day = 86_400_000;
+  add('Library', now - day); add('Library', now - 2 * day);              // only two
+  add('Boys Hostel', now - day); add('Boys Hostel', now - 40 * day); add('Boys Hostel', now - 50 * day); // two are outside the window
+  add('Admin Block', now - day); add('Admin Block', now - 5 * day); add('Admin Block', now - 10 * day); // three in 30 days
+  const flagged = buildInsights(fresh, now).recurring.map((r) => r.location);
+  assert.deepEqual(flagged, ['Admin Block']);
 });

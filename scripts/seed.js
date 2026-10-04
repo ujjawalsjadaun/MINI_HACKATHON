@@ -45,6 +45,12 @@ updateIssue(db, admin, oldLight, { assignee_id: ramesh.id }, ago(11));
 updateIssue(db, admin, oldLight, { status: 'awaiting_confirmation', note: 'Tube replaced' }, ago(10.5));
 confirmFix(db, chen, oldLight, ago(10));
 
+// A third CS Block electrical fault in 30 days (a different room), so the dashboard flags the block.
+const fan = report(divya, 'electrical', 'CS Block', 'Ceiling fan not working in the seminar room', 20, 'CS-102');
+updateIssue(db, admin, fan, { assignee_id: ramesh.id }, ago(19));
+updateIssue(db, admin, fan, { status: 'awaiting_confirmation', note: 'Capacitor replaced' }, ago(18.5));
+confirmFix(db, divya, fan, ago(18));
+
 // The headline scenario: three students, one underlying issue.
 const light = report(asha, 'electrical', 'CS Block', 'Tube light broken near the entrance', 4, 'Ground floor');
 report(bimal, 'electrical', 'CS Block', 'Light not working in the corridor', 3);

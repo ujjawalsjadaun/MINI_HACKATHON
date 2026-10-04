@@ -33,6 +33,7 @@ route('/insights', ['admin'], async () => {
       tile(t.reports, 'Student reports', `grouped into ${t.issues} underlying issues`),
       tile(t.overdue, 'Overdue', 'past their category deadline'),
       tile(t.duplicates_merged, 'Duplicates merged', 'complaints the team no longer triages twice'),
+      tile(t.reopened_issues, 'Reopened', `claimed fixes that did not hold (${t.reopens} reopening${t.reopens === 1 ? '' : 's'})`),
       tile(t.avg_resolution_hours == null ? '-' : `${t.avg_resolution_hours}h`, 'Avg. time to resolve', 'across resolved issues')),
 
     d.overdue.length > 0 && h('div', { class: 'card' },
@@ -43,9 +44,9 @@ route('/insights', ['admin'], async () => {
 
     h('div', { class: 'card' },
       h('h2', {}, 'Recurring problems'),
-      h('p', { class: 'muted' }, 'The same kind of fault at the same place, again and again. These point to a root cause, not a one-off repair.'),
+      h('p', { class: 'muted' }, `The same kind of fault at the same place ${d.recurring_rule.min}+ times in ${d.recurring_rule.days} days. These point to a root cause, not a one-off repair.`),
       d.recurring.length
-        ? h('ul', {}, d.recurring.map((r) => h('li', {}, h('strong', {}, `${r.label} at ${r.location}`), ` - ${r.occurrences} separate issues, last on ${formatDate(r.last_seen)}`)))
+        ? h('ul', {}, d.recurring.map((r) => h('li', {}, h('strong', {}, `${r.label} at ${r.location}`), ` - ${r.occurrences} separate issues in ${d.recurring_rule.days} days, last on ${formatDate(r.last_seen)}`)))
         : h('p', { class: 'muted' }, 'No recurring problems detected yet.')),
 
     h('div', { class: 'card' },
@@ -57,6 +58,7 @@ route('/insights', ['admin'], async () => {
 
     h('div', { class: 'grid' },
       bars('Issues by location (hotspots)', d.hotspots, { name: (r) => r.location, value: (r) => r.issues }),
+      bars('Avg. hours to resolve, by category', d.resolution_by_category, { name: (r) => r.label, value: (r) => r.avg_hours, note: 'Appears once issues are resolved.' }),
       bars('Issues by category', d.by_category, { name: (r) => r.label, value: (r) => r.count }),
       bars('Active workload by team', d.by_department, { name: (r) => r.department, value: (r) => r.active ?? 0 }),
       bars('Issues by status', d.by_status, { name: (r) => r.status.replace(/_/g, ' '), value: (r) => r.count })));
