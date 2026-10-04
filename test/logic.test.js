@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { tokenize, similarity, findDuplicate, MATCH_THRESHOLD } from '../server/dedupe.js';
 import { createAssistant, suggestWithRules } from '../server/ai.js';
 import { INSTITUTE, latestNotices, parseNotices, resetNoticeCache } from '../server/institute.js';
-import { createMailer } from '../server/mailer.js';
 import { priorityOf } from '../server/priority.js';
 import { openDb } from '../server/db.js';
 
@@ -174,28 +173,4 @@ test('institute facts carry their sources and retrieval date', () => {
   assert.match(INSTITUTE.address, /791113/);
   assert.ok(INSTITUTE.sources.every((x) => x.url.startsWith('https://www.nitap.ac.in/')));
   assert.match(INSTITUTE.retrieved, /^\d{4}-\d{2}-\d{2}$/);
-});
-
-test('mailer sends through SMTP when configured and says so honestly when it is not', async () => {
-  const sent = [];
-  const live = createMailer({ env: { SMTP_USER: 'campus@example.edu' }, transport: { sendMail: async (m) => sent.push(m) } });
-  assert.equal(live.delivers, true);
-  await live.send({ to: 'a@b.edu', subject: 'Hi', text: 'Body' });
-  assert.deepEqual(sent, [{ from: 'CampusFix <campus@example.edu>', to: 'a@b.edu', subject: 'Hi', text: 'Body' }]);
-
-  // Real SMTP settings switch delivery on; anything missing keeps demo mode.
-  assert.equal(createMailer({ env: { SMTP_HOST: 'smtp.example.edu', SMTP_USER: 'u', SMTP_PASS: 'p' } }).delivers, true);
-  assert.equal(createMailer({ env: { SMTP_HOST: 'smtp.example.edu', SMTP_USER: 'u' } }).delivers, false);
-
-  const logged = [];
-  const original = console.log;
-  console.log = (...args) => logged.push(args.join(' '));
-  try {
-    const demo = createMailer({ env: {} });
-    assert.equal(demo.delivers, false);
-    await demo.send({ to: 'a@b.edu', subject: 'Code', text: 'ABCD2345' });
-  } finally {
-    console.log = original;
-  }
-  assert.match(logged.join('\n'), /demo mode[\s\S]*To: a@b\.edu[\s\S]*ABCD2345/);
 });

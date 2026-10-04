@@ -1,7 +1,7 @@
 import { api, session } from './api.js';
 import { h, toast } from './dom.js';
 import { currentPath, go, homeFor, matchRoute, rememberNext } from './router.js';
-import { authView, forgotView } from './views/auth.js';
+import { authView } from './views/auth.js';
 import './views/admin.js';
 import './views/qr.js';
 import './views/insights.js';
@@ -10,9 +10,6 @@ import './views/report.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
-
-// Reachable without signing in.
-const PUBLIC_PATHS = new Set(['/login', '/forgot']);
 
 const NAV = {
   admin: [['/admin', 'Issues'], ['/insights', 'Insights'], ['/admin/qr', 'QR tags']],
@@ -49,15 +46,14 @@ function showError(err) {
 async function render() {
   const path = currentPath();
   const user = session.user;
-  if (!user && !PUBLIC_PATHS.has(path)) {
+  if (!user && path !== '/login') {
     rememberNext();
     return go('/login');
   }
-  if (user && (PUBLIC_PATHS.has(path) || path === '/')) return go(homeFor(user));
+  if (user && (path === '/login' || path === '/')) return go(homeFor(user));
 
   renderNav();
   if (path === '/login') return main.replaceChildren(authView());
-  if (path === '/forgot') return main.replaceChildren(forgotView());
 
   const found = matchRoute(path);
   if (!found) return main.replaceChildren(h('div', { class: 'card' }, h('h1', {}, 'Page not found')));

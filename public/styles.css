@@ -198,6 +198,3 @@ main { background: rgba(255, 255, 255, .0); }
 
 .sitefooter a { color: #f0d58a; }
 
-.countdown { margin: .6rem 0 0; font: 700 1.1rem/1.3 ui-monospace, Consolas, monospace; color: var(--brand); }
-.countdown.low { color: var(--high); }
-.countdown.expired { color: var(--danger); font-family: inherit; font-size: .95rem; }

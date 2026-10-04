@@ -78,25 +78,6 @@ The seeded admin password is public in this README. Set your own with `ADMIN_PAS
 
 Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/campusfix.db`).
 
-### Forgot password
-
-Self-service, no admin involved: on **Forgot your password?** the user enters their registered email, a one-time 8-character code is emailed to that address, and the code plus a new password completes the reset.
-
-- The code is never returned by the API or shown on the page, so only someone who can read that inbox can use it. It is stored only as a hash, works once, expires after 2 minutes (the page shows a countdown) and locks after five wrong tries. Asking again cancels the earlier code.
-- The reply looks identical whether or not the account exists (and the email is sent in the background), so the form cannot be used to find out who has an account. Requests are limited per account and per IP.
-- A successful reset signs the user out on every device.
-
-**Sending real email.** Copy `.env.example` to `.env` (git-ignored) and fill in the SMTP settings, for example Gmail with an *App password* (turn on 2-step verification, then Google Account > Security > App passwords):
-
-```
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=you@gmail.com
-SMTP_PASS=<the app password>
-```
-
-Restart the server and the reset page says "Check your email". **Without these settings the app runs in demo mode:** the email is printed in the server console and the page says so, instead of pretending an email was sent. Other settings that work the same way: `PORT`, `OLLAMA_MODEL`.
-
 ### Smart suggestions on the report form
 
 **Smart suggest** reads the student's rough description and proposes a category, a tidier wording and a safety warning. Nothing is applied until the student taps **Use this**. It needs no account, no API key and no internet.
@@ -157,14 +138,14 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 - Photo uploads: JPG, PNG or WebP only, 5 MB limit, random server-side filenames, served with `nosniff`.
 - The UI builds the DOM with `textContent`, so user text cannot inject HTML. A CSP restricts scripts to the same origin; other security headers are set too.
 - Staff and students never see reporter names; students see only their own report text.
-- No secrets in the repo; `.env` (SMTP password), the database and uploads are git-ignored, and `.env.example` holds placeholders only.
+- No secrets in the repo; `.env`, the database and uploads are git-ignored.
 
 ## Known limitations (MVP)
 
 - Duplicate matching is rule-based, not semantic, and does not compare photos. It can miss duplicates described in very different words. Admins cannot yet merge issues by hand.
 - "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
-- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. Password reset needs SMTP settings to send real emails; otherwise it runs in demo mode (see Forgot password).
+- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification, and password reset is not built yet.
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
@@ -177,7 +158,7 @@ The sign-in page shows facts about the host institute that were copied from [nit
 
 ## Credits
 
-Express, multer, qrcode, nodemailer (reset emails), and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
+Express, multer, qrcode, and Node's built-in `node:sqlite`. Built during Hackathon Arunachal 2026.
 
 The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. CampusFix is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
 

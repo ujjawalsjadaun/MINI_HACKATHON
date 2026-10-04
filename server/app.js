@@ -8,13 +8,11 @@ import { CAMPUS, CATEGORIES, LOCATIONS, STATUSES } from './config.js';
 import { HttpError, wrap } from './http.js';
 import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
-import { createMailer } from './mailer.js';
-import { passwordResetRoutes } from './password-reset.js';
 import { qrRoutes } from './qr.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistant = createAssistant(), mailer = createMailer() } = {}) {
+export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistant = createAssistant() } = {}) {
   const app = express();
   const api = express.Router();
   app.disable('x-powered-by');
@@ -42,7 +40,6 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
   // Public: shown on the sign-in page. Notices come live from the official site and may be empty.
   api.get('/institute', wrap(async (_req, res) => res.json({ ...INSTITUTE, notices: await latestNotices() })));
   authRoutes(db, api);
-  passwordResetRoutes(db, api, mailer);
   qrRoutes(api);
   aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });

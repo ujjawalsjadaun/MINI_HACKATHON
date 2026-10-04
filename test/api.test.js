@@ -9,13 +9,11 @@ import { openDb } from '../server/db.js';
 
 let server, base, uploadDir;
 const db = openDb(':memory:');
-const mails = []; // reset emails the app tried to send
-const mailer = { delivers: true, send: async (mail) => { mails.push(mail); } };
 
 before(async () => {
   uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'campusfix-'));
   createUser(db, { name: 'Admin', email: 'admin@test.edu', password: 'adminpass', role: 'admin' });
-  server = createApp(db, { uploadDir, mailer }).listen(0);
+  server = createApp(db, { uploadDir }).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://localhost:${server.address().port}`;
 });
@@ -397,77 +395,4 @@ test('suggestions work without any key, are student-only and rate limited', asyn
   let last;
   for (let i = 0; i < 20; i++) last = await call('POST', '/api/ai/suggest', { token: student, body: { description: 'ceiling fan not working in the lab' } });
   assert.equal(last.status, 429);
-});
-
-test('password reset: a code is emailed to the account, locks after wrong tries, and ends all sessions', async () => {
-  const student = await signup('Reena');
-  const email = 'reena@test.edu';
-  const asked = (address = email) => call('POST', '/api/auth/forgot', { body: { email: address } });
-  const lastMail = () => mails.at(-1);
-
-  // The answer is the same for real and unknown accounts; only the real one gets an email.
-  const real = (await asked()).data;
-  const unknown = (await asked('nobody@test.edu')).data;
-  assert.deepEqual(real, unknown);
-  assert.equal(real.ok, true);
-  assert.equal(mails.filter((m) => m.to === 'nobody@test.edu').length, 0);
-  assert.equal(lastMail().to, email);
-  const first = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
-
-  // The code is never in the API response.
-  assert.ok(!JSON.stringify(real).includes(first));
-
-  const attempt = (code, password = 'brandnew1', who = email) => call('POST', '/api/auth/reset', { body: { email: who, code, password } });
-  assert.equal((await attempt('WRONGCOD')).status, 400);
-  assert.equal((await attempt(first, 'short')).status, 400); // the new password is still validated
-
-  // Asking again makes the earlier code useless.
-  await asked();
-  const second = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
-  assert.notEqual(second, first);
-  assert.equal((await attempt(first)).status, 400);
-
-  // Five wrong guesses lock the current code, even for the right one.
-  for (let i = 0; i < 5; i++) assert.equal((await attempt('WRONGCOD')).status, 400);
-  assert.equal((await attempt(second)).status, 400);
-
-  // The code is only valid for 2 minutes. (Earlier requests are aged so the hourly limit does not interfere.)
-  const ageRequests = () => db.prepare('UPDATE password_resets SET requested_at = requested_at - 7200000').run();
-  ageRequests();
-  assert.equal(real.expires_in, 120);
-  await asked();
-  assert.match(lastMail().text, /expires in 2 minutes/);
-  const expiring = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
-  db.prepare('UPDATE password_resets SET expires_at = ? WHERE used_at IS NULL').run(Date.now() - 1);
-  assert.equal((await attempt(expiring)).status, 400);
-
-  // A fresh code works once, tolerating lower case and a dash.
-  ageRequests();
-  await asked();
-  const third = lastMail().text.match(/\b([A-HJKMNP-Z2-9]{8})\b/)[1];
-  assert.equal((await attempt(third.toLowerCase().replace(/^(....)/, '$1-'))).status, 200);
-  assert.equal((await attempt(third)).status, 400);
-
-  // The old password and the old session are gone; the new password works.
-  assert.equal((await call('GET', '/api/me', { token: student })).status, 401);
-  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'secret123' } })).status, 401);
-  assert.equal((await call('POST', '/api/auth/login', { body: { email, password: 'brandnew1' } })).status, 200);
-});
-
-test('reset requests are limited per account, and a failing mail server does not change the answer', async () => {
-  await signup('Rahul');
-  const before = mails.length;
-  const ask = () => call('POST', '/api/auth/forgot', { body: { email: 'rahul@test.edu' } });
-  for (let i = 0; i < 5; i++) assert.equal((await ask()).status, 200);
-  assert.equal(mails.length - before, 3); // 3 per hour per account, the rest are quietly ignored
-
-  const broken = createApp(db, { uploadDir, mailer: { delivers: true, send: async () => { throw new Error('smtp down'); } } }).listen(0);
-  await new Promise((r) => broken.once('listening', r));
-  try {
-    await signup('Rina');
-    const res = await fetch(`http://localhost:${broken.address().port}/api/auth/forgot`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'rina@test.edu' }) });
-    assert.equal(res.status, 200);
-  } finally {
-    broken.close();
-  }
 });
