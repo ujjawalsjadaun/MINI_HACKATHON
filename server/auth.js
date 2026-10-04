@@ -51,7 +51,28 @@ export function requireAdmin(req, _res, next) {
   next(req.user?.role === 'admin' ? undefined : new HttpError(403, 'Admin access required'));
 }
 
-export function authRoutes(db, router) {
+// Brute-force protection: too many failed logins for one email+IP locks it briefly.
+const MAX_FAILURES = 5;
+const LOCK_MS = 10 * 60 * 1000;
+
+export function createLoginThrottle(now = () => Date.now()) {
+  const failures = new Map();
+  const live = (key) => {
+    const entry = failures.get(key);
+    if (entry && entry.until <= now() && entry.count >= MAX_FAILURES) failures.delete(key);
+    return failures.get(key);
+  };
+  return {
+    isLocked: (key) => (live(key)?.count ?? 0) >= MAX_FAILURES,
+    fail(key) {
+      const entry = live(key) ?? { count: 0 };
+      failures.set(key, { count: entry.count + 1, until: now() + LOCK_MS });
+    },
+    clear: (key) => failures.delete(key),
+  };
+}
+
+export function authRoutes(db, router, throttle = createLoginThrottle()) {
   router.post('/auth/register', wrap((req, res) => {
     const name = requireString(req.body.name, 'Name', { min: 2, max: 80 });
     const email = requireString(req.body.email, 'Email', { max: 120 }).toLowerCase();
@@ -67,10 +88,14 @@ export function authRoutes(db, router) {
   router.post('/auth/login', wrap((req, res) => {
     const email = requireString(req.body.email, 'Email', { max: 120 }).toLowerCase();
     const password = requireString(req.body.password, 'Password', { max: 100 });
+    const key = `${req.ip}|${email}`;
+    if (throttle.isLocked(key)) throw new HttpError(429, 'Too many failed attempts. Try again in a few minutes.');
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (!user || !verifyPassword(password, user.salt, user.password_hash)) {
+      throttle.fail(key);
       throw new HttpError(401, 'Incorrect email or password');
     }
+    throttle.clear(key);
     res.json({ token: startSession(db, user.id), user: publicUser(user) });
   }));
 

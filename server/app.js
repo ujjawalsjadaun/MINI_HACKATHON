@@ -13,6 +13,15 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads') } = {}) {
   const app = express();
   const api = express.Router();
   app.disable('x-powered-by');
+  app.use((_req, res, next) => {
+    res.set({
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'",
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'same-origin',
+      'X-Frame-Options': 'DENY',
+    });
+    next();
+  });
   app.use(express.json({ limit: '100kb' }));
   app.use(express.static(path.join(root, 'public')));
   app.use('/uploads', express.static(uploadDir, { setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff') }));
