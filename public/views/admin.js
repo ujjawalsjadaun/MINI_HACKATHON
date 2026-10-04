@@ -135,29 +135,43 @@ route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
 });
 
 route('/admin/resets', ['admin'], async () => {
-  const requests = await api('/admin/resets');
   const shown = h('div', { 'aria-live': 'polite' });
+  const list = h('div');
 
   const issue = (r) => async (e) => {
     e.target.disabled = true;
     try {
       const { code, expires_at: expiresAt } = await api(`/admin/resets/${r.id}/code`, { method: 'POST' });
       shown.replaceChildren(h('div', { class: 'notice ok' },
-        h('strong', {}, `Reset code for ${r.name}: `), h('span', { class: 'reset-code' }, code),
-        h('p', { class: 'hint' }, `Check their college ID, then tell them this code in person. It works once and expires at ${formatDate(expiresAt)}. It will not be shown again.`)));
+        h('strong', {}, `Approved for ${r.name}. `),
+        'Their open reset page now asks for a new password by itself. If they closed it, give them this one-time code in person: ',
+        h('span', { class: 'reset-code' }, code),
+        h('p', { class: 'hint' }, `Check their college ID first. Valid until ${formatDate(expiresAt)}, works once, and is not shown again.`)));
+      await draw();
     } catch (err) { toast(err.message, 'error'); }
     e.target.disabled = false;
   };
 
-  return h('section', {},
-    h('h1', {}, 'Password reset requests'),
-    h('p', { class: 'muted' }, 'Students and staff who forgot their password appear here. Verify who they are, then generate a one-time code and give it to them in person.'),
-    shown,
-    requests.length
+  async function draw() {
+    const requests = await api('/admin/resets');
+    list.replaceChildren(...(requests.length
       ? requests.map((r) => h('article', { class: 'card' },
         h('div', { class: 'row between' },
           h('div', {}, h('h3', {}, r.name), h('p', { class: 'muted' }, `${r.email} (${r.role}) - requested ${formatDate(r.requested_at)}`),
-            r.code_active ? h('p', { class: 'hint' }, `A code is active until ${formatDate(r.expires_at)}. Generating a new one cancels it.`) : null),
-          h('button', { class: 'primary', type: 'button', onclick: issue(r) }, r.code_active ? 'Generate new code' : 'Generate code'))))
-      : emptyState('No pending requests', 'When someone uses "Forgot your password?" they will show up here.'));
+            r.code_active ? h('p', { class: 'hint' }, `Approved, open until ${formatDate(r.expires_at)}. Approving again cancels the earlier approval.`) : null),
+          h('button', { class: r.code_active ? 'secondary' : 'primary', type: 'button', onclick: issue(r) }, r.code_active ? 'Approve again' : 'Approve reset'))))
+      : [emptyState('No pending requests', 'When someone uses "Forgot your password?" they will show up here.')]));
+  }
+  await draw();
+
+  // New requests appear without reloading; stop when the admin leaves the page.
+  const timer = setInterval(() => {
+    if (location.hash !== '#/admin/resets') return clearInterval(timer);
+    draw().catch(() => {});
+  }, 8000);
+
+  return h('section', {},
+    h('h1', {}, 'Password reset requests'),
+    h('p', { class: 'muted' }, 'Check who is asking (for example their college ID), then approve. Their open page continues by itself. This list refreshes automatically.'),
+    shown, list);
 });
