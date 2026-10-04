@@ -46,7 +46,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
   api.get('/institute', wrap(async (_req, res) => res.json({ ...INSTITUTE, notices: await latestNotices() })));
   authRoutes(db, api);
   securityQuestionRoutes(db, api);
-  qrRoutes(api);
+  qrRoutes(db, api);
   emergencyRoutes(db, api, emergencyFile);
   aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });

@@ -239,6 +239,18 @@ test('QR endpoint renders an SVG for report links and rejects anything else', as
   assert.equal((await fetch(`${base}/api/qr`)).status, 400);
 });
 
+test('QR stickers get this computer\'s network address, never localhost (admins only)', async () => {
+  assert.equal((await call('GET', '/api/qr/addresses')).status, 401);
+  assert.equal((await call('GET', '/api/qr/addresses', { token: await signup('Ishaan') })).status, 403);
+  const { status, data } = await call('GET', '/api/qr/addresses', { token: await adminLogin() });
+  assert.equal(status, 200);
+  const port = new URL(base).port;
+  for (const a of data.addresses) {
+    assert.match(a.url, new RegExp(`^http://\\d+\\.\\d+\\.\\d+\\.\\d+:${port}$`));
+    assert.doesNotMatch(a.url, /localhost|127\.0\.0\.1/);
+  }
+});
+
 test('only a reporter can confirm or reopen, and new evidence reopens automatically', async () => {
   const [p, q, r] = await Promise.all(['Priya', 'Qadir', 'Rohan'].map(signup));
   const admin = await adminLogin();

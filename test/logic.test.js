@@ -202,3 +202,14 @@ test('every place has a spot on the schematic map, inside it and not overlapping
     }
   }
 });
+
+test('network addresses for QR stickers skip loopback, link-local and put virtual adapters last', async () => {
+  const { lanAddresses } = await import('../server/network.js');
+  const found = lanAddresses({
+    'vEthernet (WSL)': [{ family: 'IPv4', address: '172.20.0.1', internal: false }],
+    'Loopback Pseudo-Interface 1': [{ family: 'IPv4', address: '127.0.0.1', internal: true }],
+    'Wi-Fi': [{ family: 'IPv6', address: 'fe80::1', internal: false }, { family: 'IPv4', address: '10.34.133.105', internal: false }],
+    Ethernet: [{ family: 'IPv4', address: '169.254.10.2', internal: false }],
+  });
+  assert.deepEqual(found.map((a) => a.address), ['10.34.133.105', '172.20.0.1']);
+});

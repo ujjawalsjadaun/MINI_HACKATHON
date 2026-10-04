@@ -451,4 +451,7 @@ export default {
   "Police Control Room": "ପୋଲିସ୍ କଣ୍ଟ୍ରୋଲ୍ ରୁମ୍",
   "Fire Station, Itanagar": "ଅଗ୍ନିଶମ କେନ୍ଦ୍ର, ଇଟାନଗର",
   "Itanagar Control Room": "ଇଟାନଗର କଣ୍ଟ୍ରୋଲ୍ ରୁମ୍",
+
+  // QR tags: network address
+  "Phones cannot open this address. Choose one of this computer's network addresses: {list}": "ଫୋନ୍ ଏହି ଠିକଣା ଖୋଲିପାରିବ ନାହିଁ। ଏହି କମ୍ପ୍ୟୁଟରର ଗୋଟିଏ ନେଟୱର୍କ ଠିକଣା ବାଛନ୍ତୁ: {list}",
 };
