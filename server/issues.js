@@ -32,12 +32,20 @@ export function validateReportInput(body = {}) {
   const location = requireString(body.location, 'Location', { max: 60 });
   if (!CATEGORIES[category]) throw new HttpError(400, 'Unknown category');
   if (!LOCATIONS.includes(location)) throw new HttpError(400, 'Unknown location');
+  // An optional pin dropped on the schematic map, as fractions (0 to 1) of its width and height.
+  let pin = null;
+  if (body.pin_x !== undefined && body.pin_x !== '' || body.pin_y !== undefined && body.pin_y !== '') {
+    const [x, y] = [Number(body.pin_x), Number(body.pin_y)];
+    if (![x, y].every((v) => Number.isFinite(v) && v >= 0 && v <= 1)) throw new HttpError(400, 'The map pin must be inside the map');
+    pin = { x: Math.round(x * 10000) / 10000, y: Math.round(y * 10000) / 10000 };
+  }
   const urgency = body.urgency ?? 'normal';
   if (!URGENCIES[urgency]) throw new HttpError(400, 'Unknown urgency');
   return {
     category,
     location,
     urgency,
+    pin,
     detail: typeof body.detail === 'string' ? body.detail.trim().slice(0, 100) : '',
     description: requireString(body.description, 'Description', { min: 8, max: 600 }),
   };
@@ -127,7 +135,7 @@ export function submitReport(db, user, input, photo, now = Date.now()) {
       const reason = explainMatch(input.category, input.location, best.score);
       db.prepare('INSERT INTO reports (issue_id, user_id, description, photo, match_reason, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
         .run(issueId, user.id, input.description, photo, reason, input.urgency, now);
-      db.prepare('UPDATE issues SET updated_at = ? WHERE id = ?').run(now, issueId);
+      db.prepare('UPDATE issues SET updated_at = ?, pin_x = COALESCE(pin_x, ?), pin_y = COALESCE(pin_y, ?) WHERE id = ?').run(now, input.pin?.x ?? null, input.pin?.y ?? null, issueId);
       reopenIfAwaiting(db, issueId, 'A new report came in after the fix was claimed', now);
       return { issueId, merged: true, reason };
     }
@@ -135,9 +143,9 @@ export function submitReport(db, user, input, photo, now = Date.now()) {
     const title = input.description.length > 60 ? `${input.description.slice(0, 57)}...` : input.description;
     const department = CATEGORIES[input.category].department;
     const info = db
-      .prepare(`INSERT INTO issues (title, category, location, detail, description, department, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(title, input.category, input.location, input.detail, input.description, department, now, now);
+      .prepare(`INSERT INTO issues (title, category, location, detail, description, department, created_at, updated_at, pin_x, pin_y)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(title, input.category, input.location, input.detail, input.description, department, now, now, input.pin?.x ?? null, input.pin?.y ?? null);
     const issueId = Number(info.lastInsertRowid);
     db.prepare('INSERT INTO reports (issue_id, user_id, description, photo, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?)')
       .run(issueId, user.id, input.description, photo, input.urgency, now);

@@ -489,3 +489,35 @@ test('students rate urgency; the highest rating counts once and shows in the pri
   assert.equal(after.reasons.filter((r) => /reporter marked/.test(r)).length, 1);
   assert.ok(after.reasons.some((r) => /emergency/.test(r)));
 });
+
+test('a pin dropped on the map is validated, saved with the issue, and adopted by a merged report if none was set', async () => {
+  const [a, b] = await Promise.all(['Pia', 'Pranav'].map(signup));
+  const place = { category: 'electrical', location: 'B-IV', detail: 'Lab 3' };
+
+  // Pins must be a complete pair inside the map.
+  assert.equal((await report(a, 'Tube light flickering in the lab', { ...place, pin_x: '0.4' })).status, 400);
+  assert.equal((await report(a, 'Tube light flickering in the lab', { ...place, pin_x: '1.5', pin_y: '0.2' })).status, 400);
+  assert.equal((await report(a, 'Tube light flickering in the lab', { ...place, pin_x: 'left', pin_y: '0.2' })).status, 400);
+
+  // No pin: the issue simply has none.
+  const first = await report(a, 'Tube light flickering in the lab', place);
+  assert.equal(first.status, 201);
+  const noPin = (await call('GET', `/api/issues/${first.data.issueId}`, { token: a })).data.issue;
+  assert.equal(noPin.pin_x, null);
+
+  // A merged report with a pin gives the issue its location on the map...
+  const merged = await report(b, 'Light in lab 3 keeps flickering, tube light', { ...place, pin_x: '0.31234567', pin_y: '0.2' });
+  assert.equal(merged.data.merged, true);
+  const pinned = (await call('GET', `/api/issues/${first.data.issueId}`, { token: a })).data.issue;
+  assert.deepEqual([pinned.pin_x, pinned.pin_y], [0.3123, 0.2]);
+
+  // ...and the first pin stays.
+  const c = await signup('Pooja');
+  await report(c, 'Tube light flickering again in lab 3', { ...place, pin_x: '0.9', pin_y: '0.9' });
+  const kept = (await call('GET', `/api/issues/${first.data.issueId}`, { token: a })).data.issue;
+  assert.deepEqual([kept.pin_x, kept.pin_y], [0.3123, 0.2]);
+
+  const meta = (await call('GET', '/api/meta')).data;
+  assert.deepEqual(meta.mapSize, { width: 1000, height: 640 });
+  assert.ok(meta.campus.every((g) => g.places.every((p) => p.map)));
+});

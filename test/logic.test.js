@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { tokenize, similarity, findDuplicate, MATCH_THRESHOLD } from '../server/dedupe.js';
 import { createAssistant, suggestWithRules } from '../server/ai.js';
 import { INSTITUTE, latestNotices, parseNotices, resetNoticeCache } from '../server/institute.js';
+import { CAMPUS, MAP_SIZE } from '../server/config.js';
 import { priorityOf } from '../server/priority.js';
 import { openDb } from '../server/db.js';
 
@@ -185,4 +186,19 @@ test('the reporter urgency rating adds a visible, capped amount to the priority'
   assert.ok(emergency.reasons.some((r) => /reporter marked it emergency \+25/.test(r)));
   assert.ok(!normal.reasons.some((r) => /reporter marked/.test(r)));
   assert.equal(priorityOf({ ...base, urgency: 'made-up' }).score, normal.score); // unknown values add nothing
+});
+
+test('every place has a spot on the schematic map, inside it and not overlapping another', () => {
+  const places = CAMPUS.flatMap((g) => g.places);
+  assert.ok(places.length >= 17);
+  for (const p of places) {
+    assert.ok(p.map, `${p.name} has no map position`);
+    assert.ok(p.map.x >= 0 && p.map.y >= 0 && p.map.x + p.map.w <= MAP_SIZE.width && p.map.y + p.map.h <= MAP_SIZE.height, `${p.name} is outside the map`);
+  }
+  for (const [i, a] of places.entries()) {
+    for (const b of places.slice(i + 1)) {
+      const apart = a.map.x + a.map.w <= b.map.x || b.map.x + b.map.w <= a.map.x || a.map.y + a.map.h <= b.map.y || b.map.y + b.map.h <= a.map.y;
+      assert.ok(apart, `${a.name} overlaps ${b.name}`);
+    }
+  }
 });

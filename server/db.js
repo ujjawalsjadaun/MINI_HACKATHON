@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS issues (
   resolved_at INTEGER,
   reopen_count INTEGER NOT NULL DEFAULT 0,
   acknowledged_at INTEGER,
-  acknowledged_by TEXT
+  acknowledged_by TEXT,
+  pin_x REAL,
+  pin_y REAL
 );
 CREATE INDEX IF NOT EXISTS idx_issues_match ON issues(category, location, status);
 
@@ -79,7 +81,7 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
 const ADDED_COLUMNS = {
   reports: [['urgency', "TEXT NOT NULL DEFAULT 'normal'"]],
   users: [['security_question', 'TEXT'], ['security_hash', 'TEXT'], ['security_salt', 'TEXT']],
-  issues: [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT']],
+  issues: [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT'], ['pin_x', 'REAL'], ['pin_y', 'REAL']],
 };
 
 function addMissingColumns(db) {

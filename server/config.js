@@ -12,29 +12,45 @@ export const CATEGORIES = {
   other: { label: 'Other', department: 'Estate Office', severity: 1, slaHours: 168 },
 };
 
-// The campus map. `floors` lists the floors a place has (G = ground); empty means no floor choice.
+// The campus. `floors` lists the floors a place has (G = ground); empty means no floor choice.
+// `map` places the building on the schematic map (a 1000 x 640 drawing, not to scale and not surveyed):
+// x, y is the top-left corner and w, h the size.
 const FLOORS_3 = ['G', '1', '2'];
 const FLOORS_4 = ['G', '1', '2', '3'];
-const place = (name, floors = []) => ({ name, floors });
+const place = (name, floors, map) => ({ name, floors, map });
+export const MAP_SIZE = { width: 1000, height: 640 };
 
 export const CAMPUS = [
   {
     group: 'Blocks',
     places: [
-      place('B-I', FLOORS_3), place('B-II', FLOORS_3), place('B-III', FLOORS_3), place('B-IV', FLOORS_3),
-      place('Central Library', FLOORS_4), place('Administrative Building', FLOORS_4),
+      place('B-I', FLOORS_3, { x: 40, y: 80, w: 120, h: 80 }),
+      place('B-II', FLOORS_3, { x: 180, y: 80, w: 120, h: 80 }),
+      place('B-III', FLOORS_3, { x: 320, y: 80, w: 120, h: 80 }),
+      place('B-IV', FLOORS_3, { x: 460, y: 80, w: 120, h: 80 }),
+      place('Central Library', FLOORS_4, { x: 40, y: 210, w: 170, h: 90 }),
+      place('Administrative Building', FLOORS_4, { x: 240, y: 210, w: 190, h: 90 }),
     ],
   },
   {
     group: 'Hostels',
-    places: [place('Subansiri', FLOORS_3), place('Lohit-2', FLOORS_4), place('Lohit-1', FLOORS_4), place('Papum', FLOORS_4)],
+    places: [
+      place('Subansiri', FLOORS_3, { x: 660, y: 80, w: 130, h: 80 }),
+      place('Lohit-2', FLOORS_4, { x: 820, y: 80, w: 130, h: 80 }),
+      place('Lohit-1', FLOORS_4, { x: 660, y: 200, w: 130, h: 80 }),
+      place('Papum', FLOORS_4, { x: 820, y: 200, w: 130, h: 80 }),
+    ],
   },
-  { group: 'Faculty Residence', places: [place('Faculty Residence')] },
+  { group: 'Faculty Residence', places: [place('Faculty Residence', [], { x: 40, y: 410, w: 200, h: 90 })] },
   {
     group: 'Other Residence & Facilities',
     places: [
-      place('NIT Staff Residence'), place('Hospital'), place('Old Library'),
-      place('Departmental Store'), place('Post Office'), place('K.V'),
+      place('NIT Staff Residence', [], { x: 280, y: 410, w: 180, h: 90 }),
+      place('Hospital', [], { x: 500, y: 410, w: 140, h: 90 }),
+      place('Old Library', [], { x: 670, y: 410, w: 130, h: 90 }),
+      place('Departmental Store', [], { x: 830, y: 410, w: 130, h: 90 }),
+      place('Post Office', [], { x: 500, y: 530, w: 140, h: 70 }),
+      place('K.V', [], { x: 670, y: 530, w: 130, h: 70 }),
     ],
   },
 ];
