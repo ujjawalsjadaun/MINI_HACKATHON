@@ -61,7 +61,7 @@ async function resolveIssue(adminToken, issueId, reporterToken) {
 
 const report = (token, description, extra = {}) => {
   const form = new FormData();
-  const fields = { category: 'electrical', location: 'CS Block', description, ...extra };
+  const fields = { category: 'electrical', location: 'B-II', description, ...extra };
   for (const [k, v] of Object.entries(fields)) form.append(k, v);
   return call('POST', '/api/issues', { token, form });
 };
@@ -88,7 +88,7 @@ test('three students reporting the same broken light become one issue', async ()
   assert.equal(second.status, 200);
   assert.equal(second.data.merged, true);
   assert.equal(second.data.issueId, first.data.issueId);
-  assert.match(second.data.reason, /CS Block/);
+  assert.match(second.data.reason, /B-II/);
 
   const me = await call('POST', `/api/issues/${first.data.issueId}/me-too`, { token: c });
   assert.equal(me.status, 201);
@@ -100,28 +100,28 @@ test('three students reporting the same broken light become one issue', async ()
 
 test('a student cannot report the same issue twice', async () => {
   const d = await signup('Dev');
-  const first = await report(d, 'Ceiling fan not working at all', { category: 'electrical', location: 'Library' });
-  const repeat = await report(d, 'Fan is broken and not working', { category: 'electrical', location: 'Library' });
+  const first = await report(d, 'Ceiling fan not working at all', { category: 'electrical', location: 'Central Library' });
+  const repeat = await report(d, 'Fan is broken and not working', { category: 'electrical', location: 'Central Library' });
   assert.equal(first.status, 201);
   assert.equal(repeat.status, 409);
 });
 
 test('different location creates a separate issue', async () => {
   const e = await signup('Esha');
-  const res = await report(e, 'Tube light broken near the entrance', { location: 'Library' });
+  const res = await report(e, 'Tube light broken near the entrance', { location: 'Central Library' });
   assert.equal(res.data.merged, false);
 });
 
 test('similar-issue check warns before submitting', async () => {
   const f = await signup('Farid');
-  const query = new URLSearchParams({ location: 'CS Block', category: 'electrical', description: 'light is not working' });
+  const query = new URLSearchParams({ location: 'B-II', category: 'electrical', description: 'light is not working' });
   const { data } = await call('GET', `/api/issues/nearby?${query}`, { token: f });
   assert.ok(data.length >= 1);
   assert.ok(data[0].report_count >= 3);
   assert.equal(data[0].likely, true);
 
   // Only a location is needed: other categories at the place are listed but not "likely".
-  const bare = await call('GET', '/api/issues/nearby?location=CS%20Block', { token: f });
+  const bare = await call('GET', '/api/issues/nearby?location=B-II', { token: f });
   assert.ok(bare.data.length >= 1);
   assert.ok(bare.data.every((i) => i.likely === false));
   assert.equal((await call('GET', '/api/issues/nearby?location=Moon', { token: f })).status, 400);
@@ -138,7 +138,7 @@ test('photo upload accepts images and rejects other files', async () => {
   const h = await signup('Hari');
   const good = new FormData();
   good.append('category', 'wifi');
-  good.append('location', 'Boys Hostel');
+  good.append('location', 'Lohit-1');
   good.append('description', 'Wifi router is dead on this floor');
   good.append('photo', new Blob([Buffer.from([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), 'p.jpg');
   const ok = await call('POST', '/api/issues', { token: h, form: good });
@@ -148,7 +148,7 @@ test('photo upload accepts images and rejects other files', async () => {
 
   const bad = new FormData();
   bad.append('category', 'wifi');
-  bad.append('location', 'Library');
+  bad.append('location', 'Central Library');
   bad.append('description', 'Wifi is down in the whole library');
   bad.append('photo', new Blob(['<script>'], { type: 'text/html' }), 'x.html');
   assert.equal((await call('POST', '/api/issues', { token: h, form: bad })).status, 400);
@@ -164,7 +164,7 @@ test('students only see their own report details; reporter names stay hidden', a
 test('only admins can update issues; updates land on the student-visible timeline', async () => {
   const student = await signup('Jai');
   const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } });
-  const created = await report(student, 'Water leaking from the ceiling', { category: 'water', location: 'Admin Block' });
+  const created = await report(student, 'Water leaking from the ceiling', { category: 'water', location: 'Administrative Building' });
   const id = created.data.issueId;
 
   assert.equal((await call('PATCH', `/api/issues/${id}`, { token: student, body: { status: 'resolved' } })).status, 403);
@@ -196,24 +196,24 @@ test('insights are admin-only and report merged duplicates and recurring problem
   assert.equal((await call('GET', '/api/insights', { token: student })).status, 403);
 
   const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } });
-  // A second electrical issue at CS Block, after the first is resolved, marks the spot as recurring.
-  const { data: issues } = await call('GET', '/api/issues?location=CS%20Block&category=electrical', { token: admin.token });
+  // A second electrical issue at B-II, after the first is resolved, marks the spot as recurring.
+  const { data: issues } = await call('GET', '/api/issues?location=B-II&category=electrical', { token: admin.token });
   await resolveIssue(admin.token, issues[0].id, tokens.Asha);
-  const again = await report(student, 'Tube light broken near the entrance', { location: 'CS Block' });
+  const again = await report(student, 'Tube light broken near the entrance', { location: 'B-II' });
   assert.equal(again.data.merged, false);
   // A third, unrelated electrical fault in another room: 3 in 30 days makes the block a recurring spot.
-  const third = await report(student, 'Projector socket sparks when plugged in', { location: 'CS Block', detail: 'CS-205' });
+  const third = await report(student, 'Projector socket sparks when plugged in', { location: 'B-II', detail: 'CS-205' });
   assert.equal(third.data.merged, false);
 
   const { status, data } = await call('GET', '/api/insights', { token: admin.token });
   assert.equal(status, 200);
   assert.ok(data.totals.duplicates_merged >= 2);
   assert.ok(data.totals.avg_resolution_hours !== null);
-  assert.ok(data.recurring.some((r) => r.category === 'electrical' && r.location === 'CS Block' && r.occurrences >= 3));
+  assert.ok(data.recurring.some((r) => r.category === 'electrical' && r.location === 'B-II' && r.occurrences >= 3));
   assert.deepEqual(data.recurring_rule, { min: 3, days: 30 });
   assert.ok(data.resolution_by_category.some((r) => r.category === 'electrical' && r.avg_hours >= 0));
   assert.ok(data.totals.reopens >= 0);
-  assert.ok(data.hotspots.find((h) => h.location === 'CS Block').issues >= 2);
+  assert.ok(data.hotspots.find((h) => h.location === 'B-II').issues >= 2);
 });
 
 test('repeated failed logins are throttled, and responses carry security headers', async () => {
@@ -228,7 +228,7 @@ test('repeated failed logins are throttled, and responses carry security headers
 });
 
 test('QR endpoint renders an SVG for report links and rejects anything else', async () => {
-  const ok = await fetch(`${base}/api/qr?data=${encodeURIComponent('http://192.168.1.2:3001/#/report?location=CS%20Block')}`);
+  const ok = await fetch(`${base}/api/qr?data=${encodeURIComponent('http://192.168.1.2:3001/#/report?location=B-II')}`);
   assert.equal(ok.status, 200);
   assert.match(ok.headers.get('content-type'), /image\/svg\+xml/);
   assert.match(await ok.text(), /<svg/);
@@ -239,7 +239,7 @@ test('QR endpoint renders an SVG for report links and rejects anything else', as
 test('only a reporter can confirm or reopen, and new evidence reopens automatically', async () => {
   const [p, q, r] = await Promise.all(['Priya', 'Qadir', 'Rohan'].map(signup));
   const admin = await adminLogin();
-  const id = (await report(p, 'Ceiling fan makes loud noise and stopped', { category: 'electrical', location: 'Sports Complex' })).data.issueId;
+  const id = (await report(p, 'Ceiling fan makes loud noise and stopped', { category: 'electrical', location: 'Papum' })).data.issueId;
   const fix = () => call('PATCH', `/api/issues/${id}`, { token: admin, body: { status: 'awaiting_confirmation' } });
   const detail = async () => (await call('GET', `/api/issues/${id}`, { token: admin })).data;
 
@@ -273,7 +273,7 @@ test('only a reporter can confirm or reopen, and new evidence reopens automatica
 test('overdue issues are flagged on the list and counted in insights', async () => {
   const s = await signup('Sana');
   const admin = await adminLogin();
-  const id = (await report(s, 'Water leaking from a tap in the washroom', { category: 'water', location: 'Mess / Canteen' })).data.issueId;
+  const id = (await report(s, 'Water leaking from a tap in the washroom', { category: 'water', location: 'Lohit-2' })).data.issueId;
   const fresh = (await call('GET', `/api/issues/${id}`, { token: s })).data.issue;
   assert.equal(fresh.sla.overdue, false);
 
@@ -293,8 +293,8 @@ test('staff see and update only issues assigned to them, and cannot assign or vi
   makeStaff('Uday', 'IT Services');
   const [tara, uday] = [await staffLogin('Tara'), await staffLogin('Uday')];
   const s = await signup('Vikram');
-  const mine = (await report(s, 'Router in the lab keeps rebooting every minute', { category: 'wifi', location: 'Academic Block' })).data.issueId;
-  const other = (await report(s, 'Wifi dead in the seminar hall completely', { category: 'wifi', location: 'Sports Complex' })).data.issueId;
+  const mine = (await report(s, 'Router in the lab keeps rebooting every minute', { category: 'wifi', location: 'B-III' })).data.issueId;
+  const other = (await report(s, 'Wifi dead in the seminar hall completely', { category: 'wifi', location: 'Papum' })).data.issueId;
   await call('PATCH', `/api/issues/${mine}`, { token: admin, body: { assignee_id: staffId } });
 
   // Queue and detail are limited to assigned work.
@@ -329,9 +329,20 @@ test('two occurrences, or three spread beyond 30 days, are not flagged as recurr
   const add = (location, createdAt) => fresh.prepare("INSERT INTO issues (title,category,location,description,department,created_at,updated_at) VALUES ('t','wifi',?,'down','x',?,?)").run(location, createdAt, createdAt);
   const now = Date.now();
   const day = 86_400_000;
-  add('Library', now - day); add('Library', now - 2 * day);              // only two
-  add('Boys Hostel', now - day); add('Boys Hostel', now - 40 * day); add('Boys Hostel', now - 50 * day); // two are outside the window
-  add('Admin Block', now - day); add('Admin Block', now - 5 * day); add('Admin Block', now - 10 * day); // three in 30 days
+  add('Central Library', now - day); add('Central Library', now - 2 * day);              // only two
+  add('Lohit-1', now - day); add('Lohit-1', now - 40 * day); add('Lohit-1', now - 50 * day); // two are outside the window
+  add('Administrative Building', now - day); add('Administrative Building', now - 5 * day); add('Administrative Building', now - 10 * day); // three in 30 days
   const flagged = buildInsights(fresh, now).recurring.map((r) => r.location);
-  assert.deepEqual(flagged, ['Admin Block']);
+  assert.deepEqual(flagged, ['Administrative Building']);
+});
+
+test('meta serves the NIT Arunachal Pradesh campus map and rejects unknown places', async () => {
+  const { data } = await call('GET', '/api/meta');
+  assert.deepEqual(data.campus.map((g) => g.group), ['Blocks', 'Hostels', 'Faculty Residence', 'Other Residence & Facilities']);
+  assert.equal(data.locations.length, 17);
+  for (const name of ['B-I', 'B-IV', 'Central Library', 'Administrative Building', 'Shubhasani', 'Lohit-1', 'Lohit-2', 'Papum', 'Hospital', 'K.V']) {
+    assert.ok(data.locations.includes(name), name);
+  }
+  const s = await signup('Meera');
+  assert.equal((await report(s, 'Light is broken in the corridor', { location: 'CS Block' })).status, 400);
 });

@@ -39,34 +39,34 @@ const arun = staffMember('Arun', 'Academic Section');
 const report = (user, category, location, description, days, detail = '') =>
   submitReport(db, user, { category, location, detail, description }, null, ago(days)).issueId;
 
-// An old CS Block light fault, fixed - so the same fault returning shows up as "recurring".
-const oldLight = report(chen, 'electrical', 'CS Block', 'Tube light broken in the lab corridor', 12);
+// An old B-II light fault, fixed - so the same fault returning shows up as "recurring".
+const oldLight = report(chen, 'electrical', 'B-II', 'Tube light broken in the lab corridor', 12);
 updateIssue(db, admin, oldLight, { assignee_id: ramesh.id }, ago(11));
 updateIssue(db, admin, oldLight, { status: 'awaiting_confirmation', note: 'Tube replaced' }, ago(10.5));
 confirmFix(db, chen, oldLight, ago(10));
 
-// A third CS Block electrical fault in 30 days (a different room), so the dashboard flags the block.
-const fan = report(divya, 'electrical', 'CS Block', 'Ceiling fan not working in the seminar room', 20, 'CS-102');
+// A third B-II electrical fault in 30 days (a different room), so the dashboard flags the block.
+const fan = report(divya, 'electrical', 'B-II', 'Ceiling fan not working in the seminar room', 20, 'CS-102');
 updateIssue(db, admin, fan, { assignee_id: ramesh.id }, ago(19));
 updateIssue(db, admin, fan, { status: 'awaiting_confirmation', note: 'Capacitor replaced' }, ago(18.5));
 confirmFix(db, divya, fan, ago(18));
 
 // The headline scenario: three students, one underlying issue.
-const light = report(asha, 'electrical', 'CS Block', 'Tube light broken near the entrance', 4, 'Ground floor');
-report(bimal, 'electrical', 'CS Block', 'Light not working in the corridor', 3);
+const light = report(asha, 'electrical', 'B-II', 'Tube light broken near the entrance', 4, 'Ground floor');
+report(bimal, 'electrical', 'B-II', 'Light not working in the corridor', 3);
 addMeToo(db, divya, light, ago(2));
 updateIssue(db, admin, light, { assignee_id: ramesh.id, note: 'Replacement ordered' }, ago(2));
 
-report(divya, 'water', 'Boys Hostel', 'Water leaking from ceiling, exposed wire sparking nearby', 1, '2nd floor washroom');
-const wifi = report(esha, 'wifi', 'Library', 'Wifi not working on the first floor reading area', 2);
-report(asha, 'wifi', 'Library', 'Internet is down near the reading area', 1);
+report(divya, 'water', 'Lohit-1', 'Water leaking from ceiling, exposed wire sparking nearby', 1, '2nd floor washroom');
+const wifi = report(esha, 'wifi', 'Central Library', 'Wifi not working on the first floor reading area', 2);
+report(asha, 'wifi', 'Central Library', 'Internet is down near the reading area', 1);
 updateIssue(db, admin, wifi, { status: 'in_progress', assignee_id: priya.id, note: 'Access point being replaced' }, ago(1));
 
 // Waiting on its reporter: sign in as Bimal to see the confirm / reopen prompt.
-const projector = report(bimal, 'classroom', 'Academic Block', 'Projector not working in room 204', 5, 'Room 204');
+const projector = report(bimal, 'classroom', 'B-III', 'Projector not working in room 204', 5, 'Room 204');
 updateIssue(db, admin, projector, { status: 'awaiting_confirmation', assignee_id: arun.id, note: 'Lamp replaced' }, ago(0.3));
-report(chen, 'furniture', 'Academic Block', 'Broken desk and loose bench in the seminar hall', 0.5);
-const toilet = report(esha, 'sanitation', 'Girls Hostel', 'Washroom very dirty and no water for cleaning', 6);
+report(chen, 'furniture', 'B-III', 'Broken desk and loose bench in the seminar hall', 0.5);
+const toilet = report(esha, 'sanitation', 'Shubhasani', 'Washroom very dirty and no water for cleaning', 6);
 updateIssue(db, admin, toilet, { status: 'awaiting_confirmation', note: 'Cleaned and water supply restored' }, ago(5.2));
 confirmFix(db, esha, toilet, ago(5));
 

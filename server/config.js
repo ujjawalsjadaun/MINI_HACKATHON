@@ -12,17 +12,35 @@ export const CATEGORIES = {
   other: { label: 'Other', department: 'Estate Office', severity: 1, slaHours: 168 },
 };
 
-export const LOCATIONS = [
-  'CS Block',
-  'Academic Block',
-  'Library',
-  'Admin Block',
-  'Boys Hostel',
-  'Girls Hostel',
-  'Mess / Canteen',
-  'Sports Complex',
-  'Campus Road / Outdoor',
+// The campus map. `floors` lists the floors a place has (G = ground); empty means no floor choice.
+const FLOORS_3 = ['G', '1', '2'];
+const FLOORS_4 = ['G', '1', '2', '3'];
+const place = (name, floors = []) => ({ name, floors });
+
+export const CAMPUS = [
+  {
+    group: 'Blocks',
+    places: [
+      place('B-I', FLOORS_3), place('B-II', FLOORS_3), place('B-III', FLOORS_3), place('B-IV', FLOORS_3),
+      place('Central Library', FLOORS_4), place('Administrative Building', FLOORS_4),
+    ],
+  },
+  {
+    group: 'Hostels',
+    places: [place('Shubhasani', FLOORS_3), place('Lohit-2', FLOORS_4), place('Lohit-1', FLOORS_4), place('Papum', FLOORS_4)],
+  },
+  { group: 'Faculty Residence', places: [place('Faculty Residence')] },
+  {
+    group: 'Other Residence & Facilities',
+    places: [
+      place('NIT Staff Residence'), place('Hospital'), place('Old Library'),
+      place('Departmental Store'), place('Post Office'), place('K.V'),
+    ],
+  },
 ];
+
+export const LOCATIONS = CAMPUS.flatMap((g) => g.places.map((p) => p.name));
+export const FLOORS_OF = Object.fromEntries(CAMPUS.flatMap((g) => g.places.map((p) => [p.name, p.floors])));
 
 // A team can only move an issue to awaiting_confirmation; a reporter confirms it into resolved.
 export const STATUSES = ['open', 'assigned', 'in_progress', 'awaiting_confirmation', 'resolved'];

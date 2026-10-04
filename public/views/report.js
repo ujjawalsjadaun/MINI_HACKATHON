@@ -15,7 +15,9 @@ route('/report', ['student'], async () => {
       options.map(([value, text]) => h('option', { value }, text)));
 
   const category = select('category', m.categories.map((c) => [c.key, c.label]), 'Choose a category');
-  const location = select('location', m.locations.map((l) => [l, l]), 'Choose a location');
+  const location = h('select', { id: 'location', required: true },
+    h('option', { value: '' }, 'Choose a location'),
+    m.campus.map((g) => h('optgroup', { label: g.group }, g.places.map((p) => h('option', { value: p.name }, p.name)))));
   const detail = h('input', { id: 'detail', maxlength: 100, placeholder: 'e.g. 2nd floor, near the stairs' });
   const description = h('textarea', { id: 'description', required: true, minlength: 8, maxlength: 600, placeholder: 'What is wrong? Be specific so the right team can fix it.' });
   const photo = h('input', { id: 'photo', type: 'file', accept: PHOTO_TYPES.join(',') });

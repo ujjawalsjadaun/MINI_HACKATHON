@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authenticate, authRoutes, requireAdmin } from './auth.js';
 import { buildInsights } from './insights.js';
-import { CATEGORIES, LOCATIONS, STATUSES } from './config.js';
+import { CAMPUS, CATEGORIES, LOCATIONS, STATUSES } from './config.js';
 import { HttpError } from './http.js';
 import { issueRoutes } from './issue-routes.js';
 import { qrRoutes } from './qr.js';
@@ -31,6 +31,7 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads') } = {}) {
     res.json({
       categories: Object.entries(CATEGORIES).map(([key, c]) => ({ key, label: c.label, department: c.department })),
       locations: LOCATIONS,
+      campus: CAMPUS,
       statuses: STATUSES,
     });
   });

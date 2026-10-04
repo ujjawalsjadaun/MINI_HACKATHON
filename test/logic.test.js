@@ -18,18 +18,18 @@ test('unrelated problems stay below threshold', () => {
 test('findDuplicate requires same category and location', () => {
   const db = openDb(':memory:');
   const now = Date.now();
-  db.prepare("INSERT INTO issues (title,category,location,description,department,created_at,updated_at) VALUES ('t','electrical','CS Block','Tube light broken','x',?,?)").run(now, now);
-  const probe = { category: 'electrical', location: 'CS Block', description: 'light not working' };
+  db.prepare("INSERT INTO issues (title,category,location,description,department,created_at,updated_at) VALUES ('t','electrical','B-II','Tube light broken','x',?,?)").run(now, now);
+  const probe = { category: 'electrical', location: 'B-II', description: 'light not working' };
   assert.equal(findDuplicate(db, probe).length, 1);
-  assert.equal(findDuplicate(db, { ...probe, location: 'Library' }).length, 0);
+  assert.equal(findDuplicate(db, { ...probe, location: 'Central Library' }).length, 0);
   assert.equal(findDuplicate(db, { ...probe, category: 'wifi' }).length, 0);
 });
 
 test('findDuplicate ignores resolved issues', () => {
   const db = openDb(':memory:');
   const now = Date.now();
-  db.prepare("INSERT INTO issues (title,category,location,description,department,status,created_at,updated_at) VALUES ('t','electrical','CS Block','Tube light broken','x','resolved',?,?)").run(now, now);
-  assert.equal(findDuplicate(db, { category: 'electrical', location: 'CS Block', description: 'light broken' }).length, 0);
+  db.prepare("INSERT INTO issues (title,category,location,description,department,status,created_at,updated_at) VALUES ('t','electrical','B-II','Tube light broken','x','resolved',?,?)").run(now, now);
+  assert.equal(findDuplicate(db, { category: 'electrical', location: 'B-II', description: 'light broken' }).length, 0);
 });
 
 test('priority rises with duplicate reports and safety keywords', () => {
@@ -48,8 +48,8 @@ test('priority escalates with age but not once resolved', () => {
 test('different rooms in the same block never merge; same room or unknown room does', () => {
   const db = openDb(':memory:');
   const now = Date.now();
-  db.prepare("INSERT INTO issues (title,category,location,detail,description,department,created_at,updated_at) VALUES ('t','electrical','CS Block','CS-101','Tube light broken','x',?,?)").run(now, now);
-  const probe = { category: 'electrical', location: 'CS Block', description: 'light not working' };
+  db.prepare("INSERT INTO issues (title,category,location,detail,description,department,created_at,updated_at) VALUES ('t','electrical','B-II','CS-101','Tube light broken','x',?,?)").run(now, now);
+  const probe = { category: 'electrical', location: 'B-II', description: 'light not working' };
   assert.equal(findDuplicate(db, { ...probe, detail: 'CS-102' }).length, 0);
   assert.equal(findDuplicate(db, { ...probe, detail: 'cs 101' }).length, 1);
   assert.equal(findDuplicate(db, { ...probe, detail: '' }).length, 1);
