@@ -74,6 +74,8 @@ route('/issue/:id', ['student'], async ({ id }) => {
   return h('section', {},
     h('p', {}, h('a', { href: '#/mine' }, '< Back to my complaints')),
     issueCard(issue, m),
+    issue.acknowledged_at && issue.status !== 'resolved' && h('div', { class: 'notice ok' },
+      h('strong', {}, 'The team has seen your report. '), `Acknowledged by ${issue.acknowledged_by} on ${formatDate(issue.acknowledged_at)}.`),
     h('div', { class: 'card' },
       h('h2', {}, 'Progress'),
       timeline(log)),

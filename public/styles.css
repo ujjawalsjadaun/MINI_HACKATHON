@@ -174,3 +174,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 @keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .chips, .floors, .chip, .seg-btn { animation: none; transition: none; } }
 .field-label { display: block; font-weight: 600; margin: .75rem 0 .5rem; }
+
+.badge.ack { color: var(--ok); }
+.badge.unack { color: var(--muted); border-style: dashed; }

@@ -91,9 +91,28 @@ route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
   error,
   h('div', { class: 'row', style: 'margin-top:1rem' }, save));
 
+  const acknowledgePanel = !issue.acknowledged_at && issue.status !== 'resolved' && h('div', { class: 'notice' },
+    h('strong', {}, 'Not acknowledged yet'),
+    h('p', { class: 'hint' }, 'Let the reporters know the team has seen this, even before work starts.'),
+    h('button', {
+      class: 'primary', type: 'button',
+      onclick: async (e) => {
+        e.target.disabled = true;
+        try {
+          await api(`/issues/${id}/acknowledge`, { method: 'POST' });
+          toast('Acknowledged. Reporters can see that the team has seen it.');
+          go(`/admin/issue/${id}`);
+        } catch (err) {
+          toast(err.message, 'error');
+          e.target.disabled = false;
+        }
+      },
+    }, 'Acknowledge this issue'));
+
   return h('section', {},
     h('p', {}, h('a', { href: '#/admin' }, '< Back to queue')),
     issueCard(issue, m),
+    acknowledgePanel,
     h('div', { class: 'card' },
       h('h2', {}, 'Why this priority'),
       h('p', {}, `Score ${issue.priority.score}: ${issue.priority.reasons.join(', ')}.`),

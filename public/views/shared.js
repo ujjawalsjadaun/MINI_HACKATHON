@@ -16,13 +16,17 @@ export function issueCard(issue, m, { actions } = {}) {
       h('div', { class: 'row' },
         issue.sla.overdue && badge('overdue', 'critical'),
         badge(issue.priority.label, issue.priority.label),
-        badge(issue.status, `status-${issue.status}`))),
+        badge(issue.status, `status-${issue.status}`),
+        issue.status !== 'resolved' && (issue.acknowledged_at
+          ? h('span', { class: 'badge ack', title: `Acknowledged by ${issue.acknowledged_by}` }, 'acknowledged')
+          : h('span', { class: 'badge unack', title: 'The team has not confirmed it has seen this yet' }, 'not yet acknowledged')))),
     h('div', { class: 'meta' },
       h('span', {}, `${issue.location}${issue.detail ? ` - ${issue.detail}` : ''}`),
       h('span', {}, categoryLabel(m, issue.category)),
       h('span', { class: 'badge count', title: 'Students who reported this problem' }, `${issue.report_count} report${issue.report_count === 1 ? '' : 's'}`),
       h('span', {}, `Reported ${formatDate(issue.created_at)}`),
-      issue.assigned_to && h('span', {}, `Assigned to ${issue.assigned_to}`)),
+      issue.assigned_to && h('span', {}, `Assigned to ${issue.assigned_to}`),
+      issue.acknowledged_at && h('span', {}, `Acknowledged by ${issue.acknowledged_by}, ${formatDate(issue.acknowledged_at)}`)),
     actions);
 }
 
