@@ -5,11 +5,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import hi from '../public/lang/hi.js';
 import as from '../public/lang/as.js';
+import bn from '../public/lang/bn.js';
+import odia from '../public/lang/or.js';
 import { CAMPUS, CATEGORIES, SECURITY_QUESTIONS, STATUSES } from '../server/config.js';
 import { INSTITUTE } from '../server/institute.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const LANGUAGES = { hi, as };
+const LANGUAGES = { hi, as, bn, or: odia };
 
 // Every string literal inside a t(...) call in the browser code, found with a small scanner so that keys
 // containing brackets or quotes are read correctly.
