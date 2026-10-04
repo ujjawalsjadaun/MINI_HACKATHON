@@ -10,11 +10,28 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="topbar">
-    <a class="brand" href="#/">Campus<span>Fix</span></a>
-    <nav id="nav" aria-label="Main"></nav>
+  <div class="utility no-print">
+    <span>Hackathon Arunachal 2026 &middot; Campus Issue Management demo</span>
+    <span>A student project &mdash; not an official NIT Arunachal Pradesh service</span>
+  </div>
+  <header class="topbar no-print">
+    <a class="masthead" href="#/" aria-label="CampusFix home">
+      <svg class="emblem" viewBox="0 0 48 48" role="img" aria-label="Portal emblem">
+        <path d="M24 3 6 10v13c0 11 7.5 18.5 18 22 10.5-3.500 18-11 18-22V10z" fill="currentColor"/>
+        <path d="M14 25l7 7 13-15" fill="none" stroke="#f4c95d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>
+        <span class="inst">NIT Arunachal Pradesh</span>
+        <span class="portal">CampusFix &middot; Campus Issue Management Portal</span>
+      </span>
+    </a>
   </header>
+  <div class="menubar no-print"><nav id="nav" aria-label="Main"></nav></div>
   <main id="main" tabindex="-1"></main>
+  <footer class="sitefooter no-print">
+    <p>Report it. Track it. See it fixed.</p>
+    <p>Built for Hackathon Arunachal 2026 by students. Not an official service of NIT Arunachal Pradesh.</p>
+  </footer>
   <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
   <script type="module" src="/app.js"></script>
 </body>
