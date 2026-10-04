@@ -2,7 +2,7 @@ import { api, session } from '../api.js';
 import { badge, formatDate, h, toast } from '../dom.js';
 import { t } from '../i18n.js';
 import { go, route } from '../router.js';
-import { categoryLabel, emptyState, getMeta, issueCard, noteText, priorityReason, timeline, whereCard } from './shared.js';
+import { categoryLabel, emptyState, feedbackCard, getMeta, issueCard, noteText, priorityReason, timeline, whereCard } from './shared.js';
 
 const option = (value, text, selected) => h('option', { value, selected: selected ? true : null }, text);
 
@@ -125,6 +125,7 @@ route('/admin/issue/:id', ['admin', 'staff'], async ({ id }) => {
     h('div', { class: 'grid' },
       h('div', { class: 'card' }, h('h2', {}, t('Update')), form),
       h('div', { class: 'card' }, h('h2', {}, t('Progress')), timeline(log))),
+    (issue.status === 'resolved' || detail.feedback.count > 0) && feedbackCard(detail.feedback),
     h('div', { class: 'card reports' },
       h('h2', {}, t(reports.length === 1 ? '{n} report grouped into this issue' : '{n} reports grouped into this issue', { n: reports.length })),
       reports.map((r) => h('div', { style: 'border-top:1px solid var(--border);padding:.75rem 0' },

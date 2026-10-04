@@ -9,6 +9,13 @@ export async function getMeta(api) {
   return meta;
 }
 
+// Five stars, filled up to the rounded rating, readable as text for screen readers.
+export function stars(value) {
+  const filled = Math.round(value);
+  return h('span', { class: 'stars', role: 'img', 'aria-label': t('{value} out of 5', { value }) },
+    '\u2605'.repeat(filled), h('span', { class: 'off' }, '\u2605'.repeat(5 - filled)));
+}
+
 export const categoryLabel = (m, key) => t(m.categories.find((c) => c.key === key)?.label ?? key);
 
 // The server writes its score breakdown, timeline notes and match explanations in English with numbers and names
@@ -52,6 +59,7 @@ export function issueCard(issue, m, { actions } = {}) {
       h('span', {}, `${issue.location}${issue.detail ? ` - ${issue.detail}` : ''}`),
       h('span', {}, categoryLabel(m, issue.category)),
       h('span', { class: 'badge count', title: t('Students who reported this problem') }, t(issue.report_count === 1 ? '{n} report' : '{n} reports', { n: issue.report_count })),
+      issue.feedback_count > 0 && h('span', { class: 'badge count', title: t('Average student rating of the fix') }, stars(issue.feedback_avg), ` ${issue.feedback_avg} (${issue.feedback_count})`),
       h('span', {}, t('Reported {date}', { date: formatDate(issue.created_at) })),
       issue.assigned_to && h('span', {}, t('Assigned to {name}', { name: issue.assigned_to })),
       issue.acknowledged_at && h('span', {}, t('Acknowledged by {name}, {date}', { name: issue.acknowledged_by, date: formatDate(issue.acknowledged_at) }))),
@@ -81,4 +89,18 @@ export function whereCard(m, issue) {
     h('h2', {}, t('Where')),
     h('p', { class: 'muted' }, `${issue.location}${issue.detail ? `, ${issue.detail}` : ''}. ${t(issue.pin_x != null ? 'The reporter marked the exact spot.' : 'The exact spot was not marked.')}`),
     h('div', { class: 'map-wrap' }, map.el));
+}
+
+// What students said about the fix. Staff see comments without names; admins also see who wrote them.
+export function feedbackCard(feedback) {
+  return h('div', { class: 'card' },
+    h('h2', {}, t('Student feedback')),
+    feedback.count
+      ? [
+        h('p', {}, stars(feedback.average), ' ', t(feedback.count === 1 ? 'Rated {avg} out of 5 by {n} student' : 'Rated {avg} out of 5 by {n} students', { avg: feedback.average, n: feedback.count })),
+        ...feedback.entries.map((e) => h('div', { style: 'border-top:1px solid var(--border);padding:.6rem 0' },
+          stars(e.rating), ' ', h('span', { class: 'hint' }, `${formatDate(e.created_at)}${e.reporter ? ` - ${e.reporter}` : ''}`),
+          e.comment && h('p', {}, e.comment))),
+      ]
+      : h('p', { class: 'muted' }, t('No feedback yet.')));
 }

@@ -2,7 +2,7 @@ import { api } from '../api.js';
 import { formatDate, h } from '../dom.js';
 import { t } from '../i18n.js';
 import { route } from '../router.js';
-import { emptyState } from './shared.js';
+import { emptyState, stars } from './shared.js';
 
 const tile = (value, text, hint) => h('div', { class: 'card' },
   h('div', { class: 'stat' }, value),
@@ -35,7 +35,8 @@ route('/insights', ['admin'], async () => {
       tile(totals.overdue, t('Overdue'), t('past their category deadline')),
       tile(totals.duplicates_merged, t('Duplicates merged'), t('complaints the team no longer triages twice')),
       tile(totals.reopened_issues, t('Reopened'), t(totals.reopens === 1 ? 'claimed fixes that did not hold ({n} reopening)' : 'claimed fixes that did not hold ({n} reopenings)', { n: totals.reopens })),
-      tile(totals.avg_resolution_hours == null ? '-' : `${totals.avg_resolution_hours}h`, t('Avg. time to resolve'), t('across resolved issues'))),
+      tile(totals.avg_resolution_hours == null ? '-' : `${totals.avg_resolution_hours}h`, t('Avg. time to resolve'), t('across resolved issues')),
+      tile(totals.avg_rating == null ? '-' : `${totals.avg_rating} / 5`, t('Fix rating'), totals.rated ? t(totals.rated === 1 ? 'average of {n} student rating' : 'average of {n} student ratings', { n: totals.rated }) : t('No ratings yet'))),
 
     d.overdue.length > 0 && h('div', { class: 'card' },
       h('h2', {}, t('Overdue issues')),
@@ -57,10 +58,17 @@ route('/insights', ['admin'], async () => {
           h('a', { href: `#/admin/issue/${i.id}` }, i.title), t(' - {place}, {status} since {date}', { place: i.location, status: t(i.status.replace(/_/g, ' ')), date: formatDate(i.created_at) }))))
         : h('p', { class: 'muted' }, t('Nothing is overdue.'))),
 
+    d.feedback.low.length > 0 && h('div', { class: 'card' },
+      h('h2', {}, t('Lowest ratings')),
+      h('p', { class: 'muted' }, t('Fixes rated 1 or 2 stars, with what students wrote.')),
+      h('ul', {}, d.feedback.low.map((f) => h('li', {},
+        h('a', { href: `#/admin/issue/${f.id}` }, f.title), ` - ${f.location} `, stars(f.rating), f.comment && ` ${f.comment}`)))),
+
     h('div', { class: 'grid' },
       bars(t('Issues by location (hotspots)'), d.hotspots, { name: (r) => r.location, value: (r) => r.issues }),
       bars(t('Avg. hours to resolve, by category'), d.resolution_by_category, { name: (r) => t(r.label), value: (r) => r.avg_hours, note: t('Appears once issues are resolved.') }),
       bars(t('Issues by category'), d.by_category, { name: (r) => t(r.label), value: (r) => r.count }),
       bars(t('Active workload by team'), d.by_department, { name: (r) => t(r.department), value: (r) => r.active ?? 0 }),
+      bars(t('Average rating by category'), d.feedback.by_category, { name: (r) => t(r.label), value: (r) => r.average, note: t('Appears once students rate fixes.') }),
       bars(t('Issues by status'), d.by_status, { name: (r) => t(r.status.replace(/_/g, ' ')), value: (r) => r.count })));
 });
