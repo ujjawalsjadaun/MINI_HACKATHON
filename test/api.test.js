@@ -138,3 +138,23 @@ test('students only see their own report details; reporter names stay hidden', a
   const detail = await call('GET', `/api/issues/${issues[0].id}`, { token: i });
   assert.equal(detail.data.reports.length, 0);
 });
+
+test('only admins can update issues; updates land on the student-visible timeline', async () => {
+  const student = await signup('Jai');
+  const { data: admin } = await call('POST', '/api/auth/login', { body: { email: 'admin@test.edu', password: 'adminpass' } });
+  const created = await report(student, 'Water leaking from the ceiling', { category: 'water', location: 'Admin Block' });
+  const id = created.data.issueId;
+
+  assert.equal((await call('PATCH', `/api/issues/${id}`, { token: student, body: { status: 'resolved' } })).status, 403);
+  assert.equal((await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'bogus' } })).status, 400);
+
+  const assigned = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { assigned_to: 'Ramesh (plumber)' } });
+  assert.equal(assigned.data.issue.status, 'assigned');
+  const done = await call('PATCH', `/api/issues/${id}`, { token: admin.token, body: { status: 'resolved', note: 'Pipe replaced' } });
+  assert.equal(done.data.issue.status, 'resolved');
+  assert.ok(done.data.issue.resolved_at);
+
+  const { data } = await call('GET', `/api/issues/${id}`, { token: student });
+  assert.deepEqual(data.log.map((l) => l.status), ['open', 'assigned', 'resolved']);
+  assert.match(data.log.at(-1).note, /Pipe replaced/);
+});
