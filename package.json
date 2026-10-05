@@ -12,6 +12,7 @@
   "engines": {
     "node": ">=22.13"
   },
+  "author": "Ujjawal Singh",
   "license": "MIT",
   "dependencies": {
     "express": "^4.22.3",

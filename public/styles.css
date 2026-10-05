@@ -69,6 +69,8 @@ nav :focus-visible { outline-color: var(--accent); }
 .sitefooter { margin-top: 2rem; padding: 1.25rem 1rem; background: var(--utility-bg); color: #cfd8ee; text-align: center; font-size: .85rem; border-top: 4px solid var(--accent); }
 .sitefooter p { margin: .15rem 0; }
 .sitefooter p:first-child { font: 700 1rem Georgia, "Times New Roman", serif; color: #fff; }
+.sitefooter .developer { color: #fff; font-size: .95rem; margin: .35rem 0 .5rem; }
+.sitefooter .developer strong { color: var(--accent); letter-spacing: .02em; }
 
 main { max-width: 1080px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 .card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--brand); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(15, 30, 70, .06); }

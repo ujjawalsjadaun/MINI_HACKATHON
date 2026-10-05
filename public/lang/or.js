@@ -456,4 +456,7 @@ export default {
   // Institute email addresses only
   "Use your NIT Arunachal Pradesh email address (ending in @nitap.ac.in)": "ଆପଣଙ୍କ ଏନଆଇଟି ଅରୁଣାଚଳ ପ୍ରଦେଶ ଇମେଲ୍ ଠିକଣା ବ୍ୟବହାର କରନ୍ତୁ (@nitap.ac.in ରେ ଶେଷ ହେଉଥିବା)",
   "Only @nitap.ac.in email addresses can be used.": "କେବଳ @nitap.ac.in ଇମେଲ୍ ଠିକଣା ବ୍ୟବହାର କରାଯାଇପାରିବ।",
+
+  // Developer credit
+  "Designed and developed by": "ଡିଜାଇନ୍ ଓ ବିକାଶ:",
 };
