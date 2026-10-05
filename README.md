@@ -2,7 +2,7 @@
 
 **Problem 2: The Campus Issue Management Gap** (Hackathon Arunachal 2026)
 
-**Designed and developed by Ujjawal Singh.**
+**Designed and developed by Ujjawal Singh & Anirudh mishra.**
 
 UniSeva Portal replaces WhatsApp messages and verbal complaints with one place to report, group, prioritise, assign and track campus problems until a reporter confirms they are fixed.
 
