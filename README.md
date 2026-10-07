@@ -212,7 +212,7 @@ The background photo `public/assets/nitap-campus.jpg` (Academic Block III) is th
 
 ## Submission details
 
-- **Project:** UniSeva Portal (Problem 2, Campus Issue Management)
+- **Project:** UniSeva Portal (Campus Issue Management)
 - **Developers and designers:** Ujjawal Singh and Anirudh Mishra
 - **Tech stack:** Node.js, Express, SQLite, vanilla JavaScript
 - **Deployment:** none; runs on localhost as described above
