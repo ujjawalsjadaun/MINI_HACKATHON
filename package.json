@@ -13,6 +13,9 @@
     "node": ">=22.13"
   },
   "author": "Ujjawal Singh",
+  "contributors": [
+    "Anirudh Mishra"
+  ],
   "license": "MIT",
   "dependencies": {
     "express": "^4.22.3",

@@ -36,7 +36,7 @@ if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
 }
 
 const server = createApp(db).listen(port, () => {
-  console.log('UniSeva Portal, designed and developed by Ujjawal Singh');
+  console.log('UniSeva Portal, designed and developed by Ujjawal Singh and Anirudh Mishra');
   console.log(`UniSeva Portal running at http://localhost:${port}`);
   for (const { address } of lanAddresses()) console.log(`On your network:        http://${address}:${port}`);
 });

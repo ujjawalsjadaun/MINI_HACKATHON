@@ -491,4 +491,7 @@ export default {
 
   // Developer credit
   "Designed and developed by": "ডিজাইন আৰু বিকাশ:",
+
+  // Developer credit: joins the two names
+  "and": "আৰু",
 };

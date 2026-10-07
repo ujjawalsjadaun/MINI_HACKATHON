@@ -2,7 +2,7 @@
 
 **Problem 2: The Campus Issue Management Gap** (Hackathon Arunachal 2026)
 
-**Designed and developed by Ujjawal Singh.**
+**Designed and developed by Ujjawal Singh and Anirudh Mishra.**
 
 UniSeva Portal replaces WhatsApp messages and verbal complaints with one place to report, group, prioritise, assign and track campus problems until a reporter confirms they are fixed.
 
@@ -202,9 +202,9 @@ The sign-in page shows facts about the host institute that were copied from [nit
 
 ## Credits
 
-**Developer: Ujjawal Singh.** UniSeva Portal was designed and built by Ujjawal Singh during Hackathon Arunachal 2026, using Express, multer, qrcode and Node's built-in `node:sqlite`.
+**Developers and designers: Ujjawal Singh and Anirudh Mishra.** UniSeva Portal was designed and built by Ujjawal Singh and Anirudh Mishra during Hackathon Arunachal 2026, using Express, multer, qrcode and Node's built-in `node:sqlite`.
 
-The code is released under the [MIT License](LICENSE), copyright (c) 2026 Ujjawal Singh. The license allows reuse, but **every copy must keep that copyright notice**, so removing the developer credit from the project or from any copy of it breaks the license. The credit is also shown in the footer of every page, and an automated test (`test/credit.test.js`) fails if it is removed. Changes to this repository need the owner's approval (`.github/CODEOWNERS`).
+The code is released under the [MIT License](LICENSE), copyright (c) 2026 Ujjawal Singh and Anirudh Mishra. The license allows reuse, but **every copy must keep that copyright notice**, so removing the developer credit from the project or from any copy of it breaks the license. The credit is also shown in the footer of every page, and an automated test (`test/credit.test.js`) fails if it is removed. Changes to this repository need the owner's approval (`.github/CODEOWNERS`).
 
 The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. UniSeva Portal is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
 
@@ -213,6 +213,6 @@ The background photo `public/assets/nitap-campus.jpg` (Academic Block III) is th
 ## Submission details
 
 - **Project:** UniSeva Portal (Problem 2, Campus Issue Management)
-- **Developer:** Ujjawal Singh
+- **Developers and designers:** Ujjawal Singh and Anirudh Mishra
 - **Tech stack:** Node.js, Express, SQLite, vanilla JavaScript
 - **Deployment:** none; runs on localhost as described above

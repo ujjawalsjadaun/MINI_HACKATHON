@@ -459,4 +459,7 @@ export default {
 
   // Developer credit
   "Designed and developed by": "ଡିଜାଇନ୍ ଓ ବିକାଶ:",
+
+  // Developer credit: joins the two names
+  "and": "ଓ",
 };
