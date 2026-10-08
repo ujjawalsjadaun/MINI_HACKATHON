@@ -667,3 +667,23 @@ test('the emergency directory comes from a private file, only for signed-in user
   assert.equal(loadEmergencyContacts(file).configured, false);
   assert.equal(loadEmergencyContacts(path.join(uploadDir, 'missing.json')).configured, false);
 });
+
+test('the health check answers for the host, and TRUST_PROXY gives each visitor their own login lock-out', async () => {
+  assert.deepEqual((await call('GET', '/api/health')).data, { ok: true });
+
+  // Behind a hosting proxy every request arrives from the proxy's address. Without TRUST_PROXY, five wrong
+  // passwords from one visitor would lock the account for everybody; with it, the visitor's own address counts.
+  process.env.TRUST_PROXY = '1';
+  const proxied = createApp(db, { uploadDir, emergencyFile: path.join(uploadDir, 'no-such-file.json') }).listen(0);
+  delete process.env.TRUST_PROXY;
+  await new Promise((r) => proxied.once('listening', r));
+  const url = `http://localhost:${proxied.address().port}/api/auth/login`;
+  const attempt = (ip, password) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': ip }, body: JSON.stringify({ email: 'admin@nitap.ac.in', password }) });
+  try {
+    for (let i = 0; i < 6; i++) await attempt('203.0.113.7', 'wrong-password');
+    assert.equal((await attempt('203.0.113.7', 'adminpass')).status, 429, 'the visitor who failed is locked out');
+    assert.equal((await attempt('198.51.100.9', 'adminpass')).status, 200, 'a different visitor is not');
+  } finally {
+    await new Promise((r) => proxied.close(r));
+  }
+});

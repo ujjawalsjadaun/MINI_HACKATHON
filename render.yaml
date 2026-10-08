@@ -1,0 +1,20 @@
+# One-click hosting on Render (https://render.com): New > Blueprint > pick this repository.
+# The free plan needs no card, but the site sleeps after 15 minutes without visitors (the first visit then
+# takes about a minute) and its disk is wiped when it restarts, so the demo data is recreated on each start.
+# For data that survives restarts, switch to a paid plan and uncomment the disk below.
+services:
+  - type: web
+    name: uniseva-portal
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: TRUST_PROXY
+        value: "1"
+      # The admin password for the live site. Render asks you for it when you create the service.
+      - key: ADMIN_PASSWORD
+        sync: false
+    # disk:
+    #   name: uniseva-data
+    #   mountPath: /data
+    #   sizeGB: 1

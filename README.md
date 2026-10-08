@@ -133,6 +133,23 @@ The helper is student-only and limited to 20 requests a minute per student. The 
 
 On a fresh clone, `start.bat` (or `npm install` then `npm start`) sets everything up, including the demo accounts. The `On your network:` address changes when the computer joins a different Wi-Fi, so print QR stickers from the address shown at the time.
 
+### Put it online (no computer of yours needs to stay on)
+
+The repository includes a `Dockerfile` and a `render.yaml`, so the site can run on a free cloud host and get a public `https://` address that works from any phone or laptop:
+
+1. Sign in at [render.com](https://render.com) with the GitHub account that owns this repository.
+2. **New > Blueprint**, choose this repository, and press **Apply**.
+3. When it asks for `ADMIN_PASSWORD`, type a private password. It becomes the admin login; the demo password `admin1234` is then not valid on the live site.
+4. Wait for the first build (a few minutes). Render shows the public address, for example `https://uniseva-portal.onrender.com`.
+
+Things to know about the free plan:
+
+- It **sleeps after 15 minutes without visitors**; the next visit takes about a minute to wake it. Open the address a few minutes before a demo.
+- Its **disk is wiped on every restart**, so the database starts again from the demo data. For data that must survive, use a paid plan and uncomment the `disk` block in `render.yaml` (the database and photos live in `/data`).
+- The demo student and staff accounts keep their published passwords (`student1234`, `staff1234`) so judges can try the app, and the emergency directory is not on the host, so only the public numbers (112, police, fire) show. To add the full directory, upload it as a Render secret file and set `EMERGENCY_FILE` to its path.
+
+Settings the host can use: `PORT`, `DB_FILE`, `UPLOAD_DIR` (where photos are kept), `TRUST_PROXY=1` (needed behind a hosting proxy so each visitor has their own login lock-out), `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first run only), `NO_AUTO_SEED`, `EMERGENCY_FILE`. `GET /api/health` answers `{"ok":true}` for the host's health check. Any container host (Fly.io, Railway, a campus server) can run the same `Dockerfile`.
+
 ### QR tags on a phone
 
 Sign in as admin and open **QR tags**. When you are on `localhost`, the page fills in this computer's network address by itself (phones cannot open `localhost`) and lists any other addresses it found; it warns if the address is still `localhost`. Print the page or scan a sticker directly from the screen. A scan while signed out goes through sign-in and then lands on the pre-filled form.
@@ -215,4 +232,4 @@ The background photo `public/assets/nitap-campus.jpg` (Academic Block III) is th
 - **Project:** UniSeva Portal (Campus Issue Management)
 - **Developers and designers:** Ujjawal Singh and Anirudh Mishra
 - **Tech stack:** Node.js, Express, SQLite, vanilla JavaScript
-- **Deployment:** none; runs on localhost as described above
+- **Deployment:** runs on localhost, or online with the included `Dockerfile` / `render.yaml` (see "Put it online")

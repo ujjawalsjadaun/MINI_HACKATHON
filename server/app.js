@@ -14,10 +14,13 @@ import { qrRoutes } from './qr.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistant = createAssistant(), emergencyFile = process.env.EMERGENCY_FILE || path.join(root, 'private', 'emergency-contacts.json') } = {}) {
+export function createApp(db, { uploadDir = process.env.UPLOAD_DIR || path.join(root, 'uploads'), assistant = createAssistant(), emergencyFile = process.env.EMERGENCY_FILE || path.join(root, 'private', 'emergency-contacts.json') } = {}) {
   const app = express();
   const api = express.Router();
   app.disable('x-powered-by');
+  // Behind a hosting provider's proxy every visitor shares the proxy's address unless it is trusted, which would make
+  // the login lock-out apply to everyone at once. Set TRUST_PROXY=1 on such hosts (the number of proxies in front).
+  if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
   app.use((_req, res, next) => {
     res.set({
       'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'",
@@ -31,6 +34,8 @@ export function createApp(db, { uploadDir = path.join(root, 'uploads'), assistan
   app.use(express.static(path.join(root, 'public')));
   app.use('/uploads', express.static(uploadDir, { setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff') }));
 
+  // For the host's health check: answers only if the database responds.
+  api.get('/health', (_req, res) => res.json({ ok: Boolean(db.prepare('SELECT 1 AS ok').get().ok) }));
   api.get('/meta', (_req, res) => {
     res.json({
       categories: Object.entries(CATEGORIES).map(([key, c]) => ({ key, label: c.label, department: c.department })),
