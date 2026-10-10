@@ -1,0 +1,39 @@
+# One command for a real server: the site plus an HTTPS front door (Caddy gets and renews the certificate itself).
+#
+#   1. Point your domain (SITE_ADDRESS) at this server and open ports 80 and 443.
+#   2. cp .env.example .env   and fill in ADMIN_PASSWORD and SITE_ADDRESS.
+#   3. docker compose up -d --build
+#
+# Everything that must not be lost (the database, photos and backups) is in the "data" volume.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY: "1"
+    volumes:
+      - data:/data
+    expose:
+      - "3000"
+
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:

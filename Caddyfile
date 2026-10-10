@@ -1,0 +1,5 @@
+# HTTPS in front of the site. Caddy obtains and renews the certificate for SITE_ADDRESS automatically.
+{$SITE_ADDRESS} {
+	encode gzip
+	reverse_proxy app:3000
+}

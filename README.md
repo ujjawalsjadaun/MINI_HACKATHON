@@ -24,6 +24,8 @@ UniSeva Portal replaces WhatsApp messages and verbal complaints with one place t
 | Nothing happens after reporting | **SLA deadlines per category** (water 24h, electrical 48h, furniture 7 days...). Past the deadline an issue is flagged **overdue** and its priority rises. |
 | "Resolved" tickets that are not | A team can only mark an issue **awaiting confirmation**. A **reporter confirms** the fix (closing it) or **reopens** it. A new report or "me too" on an unconfirmed fix also reopens it. |
 | No way to track a complaint | Students see a status timeline (open, assigned, in progress, awaiting confirmation, resolved) with team notes. |
+| Students have to keep checking the site | **Notifications.** A bell in the menu shows how many updates are new. Reporters hear when the team acknowledges, assigns, starts or finishes work or posts a note; staff hear when work is assigned or a fix did not hold; admins are alerted at once to Emergency reports. They are shown in the person's own language and removed after 90 days. |
+| Who looks after the system? | A **People** page where an admin adds staff and admins, changes departments, resets passwords, and deactivates leavers (signing them out and returning their open issues to the queue). Everyone can change their own password. |
 | No central view for administration | Admin **queue** sorted by priority with filters, all merged reports, reporter names and photos, and assignment to a named staff member. |
 | No visibility into recurring problems | **Insights:** hotspots by location, recurring faults (3+ in 30 days), average time to resolve per category, overdue and stuck issues, workload per team, claimed fixes that were reopened, and duplicates merged. |
 
@@ -127,6 +129,17 @@ Each entry has a `role`, a `name`, a list of `phones` and `tags` that decide whe
 
 The helper is student-only and limited to 20 requests a minute per student. The box shows which engine produced the suggestion.
 
+### Running it for real
+
+[DEPLOYMENT.md](DEPLOYMENT.md) is the guide for whoever hosts the site: one command with Docker (`docker compose up -d --build`) gives HTTPS with an automatic certificate, an admin created from `ADMIN_PASSWORD`, daily backups and a health check. In production (`NODE_ENV=production`, which the Docker image sets):
+
+- the first start creates **only the admin** (`ADMIN_EMAIL` / `ADMIN_PASSWORD`, at least 10 characters; the public demo password is refused). Demo data only with `SEED_DEMO=1`;
+- **backups** run daily (database plus photos, the newest 14 kept; `BACKUP_EVERY_HOURS`, `BACKUP_KEEP`, `BACKUP_DIR`). `npm run backup` takes one now and `npm run restore` lists and restores them (stop the site first; the data it replaces is kept);
+- requests are logged one line each without query strings or tokens, the API and account creation are rate limited per connection address, the HSTS header is sent, expired sessions and old notifications are cleared, and the site finishes in-flight requests when it is stopped;
+- `GET /api/health` answers `{"ok":true}` for uptime checks and the host's health check. `TRUST_PROXY=1` is needed behind a proxy so each visitor has their own limits.
+
+Every push and pull request runs the test suite on GitHub (`.github/workflows/test.yml`).
+
 ### Opening it from another computer or phone
 
 `npm start` prints an `On your network:` address such as `http://192.168.1.20:3000`. Other devices must use that address, never `localhost` (which means their own machine), and must be on the same Wi-Fi. Allow Node.js through the Windows firewall if asked. Some campus or public Wi-Fi blocks device-to-device traffic; a phone hotspot works as a fallback.
@@ -148,7 +161,7 @@ Things to know about the free plan:
 - Its **disk is wiped on every restart**, so the database starts again from the demo data. For data that must survive, use a paid plan and uncomment the `disk` block in `render.yaml` (the database and photos live in `/data`).
 - The demo student and staff accounts keep their published passwords (`student1234`, `staff1234`) so judges can try the app, and the emergency directory is not on the host, so only the public numbers (112, police, fire) show. To add the full directory, upload it as a Render secret file and set `EMERGENCY_FILE` to its path.
 
-Settings the host can use: `PORT`, `DB_FILE`, `UPLOAD_DIR` (where photos are kept), `TRUST_PROXY=1` (needed behind a hosting proxy so each visitor has their own login lock-out), `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first run only), `NO_AUTO_SEED`, `EMERGENCY_FILE`. `GET /api/health` answers `{"ok":true}` for the host's health check. Any container host (Fly.io, Railway, a campus server) can run the same `Dockerfile`.
+Settings the host can use: `PORT`, `DB_FILE`, `UPLOAD_DIR` (where photos are kept), `TRUST_PROXY=1` (needed behind a hosting proxy so each visitor has their own login lock-out), `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first run only, required in production), `SEED_DEMO`, `NO_AUTO_SEED`, `BACKUP_EVERY_HOURS`, `BACKUP_KEEP`, `BACKUP_DIR`, `RATE_LIMIT` (`0` turns the limits off), `LOG_REQUESTS`, `EMERGENCY_FILE`. [`.env.example`](.env.example) lists them with comments. `GET /api/health` answers `{"ok":true}` for the host's health check. Any container host (Fly.io, Railway, a campus server) can run the same `Dockerfile`.
 
 ### QR tags on a phone
 
@@ -202,16 +215,16 @@ Data model: `issues` (one per underlying problem) have many `reports` (one per s
 ## Known limitations (MVP)
 
 - Duplicate matching is rule-based, not semantic, and does not compare photos. It can miss duplicates described in very different words. Admins cannot yet merge issues by hand.
-- "Following" an issue means it appears in the student's My complaints with live status; there are no email or push notifications.
+- Notifications appear in the site (the bell); there are no email or phone push notifications yet.
 - A claimed fix stays open until a reporter responds; there is no auto-close timer.
-- Staff and admin accounts are created by the seed script; there is no account-management UI or email verification. The `@nitap.ac.in` rule checks the address format only; without an email service it cannot prove the person owns that mailbox. Password reset uses security questions, which are convenient but weaker than an emailed link.
+- There is no email verification. The `@nitap.ac.in` rule checks the address format only; without an email service it cannot prove the person owns that mailbox. Password reset uses security questions, which are convenient but weaker than an emailed link.
 - The campus map is a schematic drawing laid out by area, not a survey: building positions are illustrative and not to scale. Issues without a dropped pin are shown faded inside their building.
 - Translations: error messages that have a name or number built in (for example a field-length message) stay in English, dates use the browser's own formatting, and the Hindi, Assamese, Bengali and Odia text needs review by native speakers.
 - Smart suggest only suggests; it never files or changes a report by itself, and it can be wrong. By default it is keyword rules, not a language model. Anonymous reporting was left out on purpose.
 
 ## Possible next steps
 
-Embedding-based text and photo matching, manual merge for admins, notifications, an auto-close timer for unanswered fixes, anonymous reporting for sensitive categories, and account management.
+Embedding-based text and photo matching, manual merge for admins, email notifications and an emailed password reset (needs the college's mail server), Google sign-in limited to the institute domain, an auto-close timer for unanswered fixes, and anonymous reporting for sensitive categories.
 
 ## Information from the official site
 

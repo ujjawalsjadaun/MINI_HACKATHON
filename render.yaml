@@ -2,6 +2,7 @@
 # The free plan needs no card, but the site sleeps after 15 minutes without visitors (the first visit then
 # takes about a minute) and its disk is wiped when it restarts, so the demo data is recreated on each start.
 # For data that survives restarts, switch to a paid plan and uncomment the disk below.
+# Real deployments: see DEPLOYMENT.md.
 services:
   - type: web
     name: uniseva-portal
@@ -14,6 +15,10 @@ services:
       # The admin password for the live site. Render asks you for it when you create the service.
       - key: ADMIN_PASSWORD
         sync: false
+      # This blueprint is for DEMONSTRATIONS: it creates the demo students, staff and issues so people can try the app.
+      # For real use follow DEPLOYMENT.md instead (admin only, no demo data, daily backups, a persistent disk).
+      - key: SEED_DEMO
+        value: "1"
     # disk:
     #   name: uniseva-data
     #   mountPath: /data
