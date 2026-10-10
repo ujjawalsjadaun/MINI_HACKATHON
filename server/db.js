@@ -93,7 +93,7 @@ export function openDb(file = process.env.DB_FILE || 'data/campusfix.db') {
 // Databases created before a column existed get it on startup.
 const ADDED_COLUMNS = {
   reports: [['urgency', "TEXT NOT NULL DEFAULT 'normal'"]],
-  users: [['security_question', 'TEXT'], ['security_hash', 'TEXT'], ['security_salt', 'TEXT']],
+  users: [['security_question', 'TEXT'], ['security_hash', 'TEXT'], ['security_salt', 'TEXT'], ['active', 'INTEGER NOT NULL DEFAULT 1']],
   issues: [['acknowledged_at', 'INTEGER'], ['acknowledged_by', 'TEXT'], ['pin_x', 'REAL'], ['pin_y', 'REAL']],
 };
 

@@ -93,6 +93,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .badge { display: inline-block; padding: .1rem .6rem; border-radius: 999px; font-size: .78rem; font-weight: 700; border: 1px solid currentColor; text-transform: capitalize; white-space: nowrap; }
 .badge.critical { color: var(--critical); }
+.card.inactive { opacity: .7; border-top-color: var(--muted); }
 .badge.high { color: var(--high); }
 .badge.medium { color: var(--medium); }
 .badge.low { color: var(--low); }

@@ -27,7 +27,7 @@ export function updateIssue(db, actor, issueId, body = {}, now = Date.now()) {
         assignedUserId = null;
         if (!status && issue.status === 'assigned') status = 'open';
       } else {
-        const staff = db.prepare("SELECT id, name FROM users WHERE id = ? AND role = 'staff'").get(Number(body.assignee_id));
+        const staff = db.prepare("SELECT id, name FROM users WHERE id = ? AND role = 'staff' AND active = 1").get(Number(body.assignee_id));
         if (!staff) throw new HttpError(400, 'Unknown staff member');
         assignedTo = staff.name;
         assignedUserId = staff.id;

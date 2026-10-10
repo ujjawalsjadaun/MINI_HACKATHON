@@ -19,7 +19,7 @@ export function securityQuestionRoutes(db, router) {
   const byEmail = createLoginThrottle();
   const byIp = createLoginThrottle(undefined, 30);
   const auth = authenticate(db);
-  const resettable = (email) => db.prepare("SELECT id, security_question, security_hash, security_salt FROM users WHERE email = ? AND role != 'admin' AND security_hash IS NOT NULL").get(email);
+  const resettable = (email) => db.prepare("SELECT id, security_question, security_hash, security_salt FROM users WHERE email = ? AND role != 'admin' AND active = 1 AND security_hash IS NOT NULL").get(email);
 
   router.get('/auth/security-question', wrap((req, res) => {
     const email = requireInstituteEmail(req.query.email);

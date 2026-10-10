@@ -687,3 +687,78 @@ test('the health check answers for the host, and TRUST_PROXY gives each visitor 
     await new Promise((r) => proxied.close(r));
   }
 });
+
+test('admins manage staff accounts: create, reassign work on deactivation, reset passwords, reactivate', async () => {
+  const admin = await adminLogin();
+  const student = await signup('Gopal');
+  assert.equal((await call('GET', '/api/people')).status, 401);
+  assert.equal((await call('GET', '/api/people', { token: student })).status, 403);
+  assert.equal((await call('POST', '/api/people', { token: student, body: {} })).status, 403);
+
+  const make = (over = {}) => call('POST', '/api/people', { token: admin, body: { name: 'Farida', email: 'farida@nitap.ac.in', role: 'staff', department: 'IT Services', password: 'farida-pass-1', ...over } });
+  assert.equal((await make({ email: 'farida@gmail.com' })).status, 400, 'only institute addresses');
+  assert.equal((await make({ password: 'short' })).status, 400, 'staff passwords need 8 characters');
+  assert.equal((await make({ department: 'Made Up Dept' })).status, 400);
+  assert.equal((await make({ role: 'student' })).status, 400, 'students register themselves');
+  const created = await make();
+  assert.equal(created.status, 201);
+  assert.equal(created.data.role, 'staff');
+  assert.equal(created.data.password_hash, undefined, 'no password material in the response');
+  assert.equal((await make()).status, 409, 'duplicate email');
+
+  const login = (password = 'farida-pass-1') => call('POST', '/api/auth/login', { body: { email: 'farida@nitap.ac.in', password } });
+  const staffToken = (await login()).data.token;
+  assert.ok(staffToken, 'a new staff member can sign in');
+  assert.ok((await call('GET', '/api/staff', { token: admin })).data.some((s) => s.name === 'Farida'));
+
+  // She is given a problem to work on.
+  const issueId = (await report(student, 'The ceiling light flickers badly in the corridor', { category: 'electrical', location: 'Papum' })).data.issueId;
+  const staffId = created.data.id;
+  await call('PATCH', `/api/issues/${issueId}`, { token: admin, body: { assignee_id: staffId } });
+  await call('PATCH', `/api/issues/${issueId}`, { token: staffToken, body: { status: 'in_progress' } });
+  const people = (await call('GET', '/api/people', { token: admin })).data;
+  assert.equal(people.people.find((p) => p.id === staffId).open_issues, 1);
+  assert.ok(people.students >= 1);
+  assert.ok(people.departments.includes('IT Services'));
+
+  // Deactivating her signs her out, frees her work and stops new assignments.
+  assert.equal((await call('PATCH', `/api/people/${staffId}`, { token: admin, body: { active: 'no' } })).status, 400);
+  assert.equal((await call('PATCH', `/api/people/${staffId}`, { token: admin, body: { active: false } })).status, 200);
+  assert.equal((await call('GET', '/api/issues', { token: staffToken })).status, 401, 'her session ends at once');
+  const refused = await login();
+  assert.equal(refused.status, 403);
+  assert.match(refused.data.error, /deactivated/);
+  assert.equal((await login('wrong-password')).status, 401, 'a wrong password does not reveal the account state');
+  const detail = (await call('GET', `/api/issues/${issueId}`, { token: admin })).data;
+  assert.equal(detail.issue.assigned_to, null);
+  assert.equal(detail.issue.status, 'open', 'her unfinished issue is back in the queue');
+  assert.match(detail.log.at(-1).note, /no longer on the team/);
+  assert.ok(!(await call('GET', '/api/staff', { token: admin })).data.some((s) => s.name === 'Farida'));
+  assert.equal((await call('PATCH', `/api/issues/${issueId}`, { token: admin, body: { assignee_id: staffId } })).status, 400, 'cannot assign to her now');
+
+  // Reactivating and resetting the password.
+  assert.equal((await call('PATCH', `/api/people/${staffId}`, { token: admin, body: { active: true, password: 'farida-pass-2' } })).status, 200);
+  assert.equal((await login()).status, 401, 'the old password no longer works');
+  assert.equal((await login('farida-pass-2')).status, 200);
+  assert.equal((await call('PATCH', `/api/people/${staffId}`, { token: admin, body: { password: 'tiny' } })).status, 400);
+  assert.equal((await call('PATCH', `/api/people/${staffId}`, { token: admin, body: { department: 'Housekeeping' } })).data.department, 'Housekeeping');
+  assert.equal((await call('PATCH', `/api/people/${staffId}`, { token: admin, body: {} })).status, 400, 'nothing to update');
+
+  // Guard rails: an admin cannot lock themselves out, and students are not managed here.
+  const me = (await call('GET', '/api/me', { token: admin })).data;
+  assert.equal((await call('PATCH', `/api/people/${me.id}`, { token: admin, body: { active: false } })).status, 400);
+  const studentId = (await call('GET', '/api/me', { token: student })).data.id;
+  assert.equal((await call('PATCH', `/api/people/${studentId}`, { token: admin, body: { active: false } })).status, 404);
+  assert.equal((await call('PATCH', `/api/people/abc`, { token: admin, body: { active: false } })).status, 400);
+});
+
+test('a deactivated student cannot reset a password through the security question either', async () => {
+  const email = 'gopal@nitap.ac.in';
+  const before = await call('GET', `/api/auth/security-question?email=${email}`);
+  assert.equal(before.status, 200);
+  db.prepare('UPDATE users SET active = 0 WHERE email = ?').run(email);
+  const reset = await call('POST', '/api/auth/reset-password', { body: { email, answer: 'Rani', password: 'brand-new-1' } });
+  assert.equal(reset.status, 400);
+  assert.match(reset.data.error, /cannot be reset this way/, 'the same answer as for any account that cannot be reset');
+  db.prepare('UPDATE users SET active = 1 WHERE email = ?').run(email);
+});

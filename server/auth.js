@@ -68,6 +68,7 @@ export function authenticate(db) {
       .prepare('SELECT u.*, s.expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?')
       .get(token);
     if (!row || row.expires_at < Date.now()) return next(new HttpError(401, 'Session expired, please sign in again'));
+    if (row.active === 0) return next(new HttpError(401, 'This account has been deactivated'));
     req.user = publicUser(row);
     req.token = token;
     next();
@@ -125,6 +126,7 @@ export function authRoutes(db, router, throttle = createLoginThrottle()) {
       throttle.fail(key);
       throw new HttpError(401, 'Incorrect email or password');
     }
+    if (user.active === 0) throw new HttpError(403, 'This account has been deactivated. Contact the administrator.');
     throttle.clear(key);
     res.json({ token: startSession(db, user.id), user: publicUser(user) });
   }));

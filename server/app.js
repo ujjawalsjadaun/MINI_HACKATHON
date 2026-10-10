@@ -11,6 +11,7 @@ import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
 import { securityQuestionRoutes } from './security-question.js';
 import { qrRoutes } from './qr.js';
+import { userRoutes } from './users.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -52,6 +53,7 @@ export function createApp(db, { uploadDir = process.env.UPLOAD_DIR || path.join(
   authRoutes(db, api);
   securityQuestionRoutes(db, api);
   qrRoutes(db, api);
+  userRoutes(db, api, requireAdmin);
   emergencyRoutes(db, api, emergencyFile);
   aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });

@@ -99,7 +99,7 @@ export function issueRoutes(db, router, { uploadDir }) {
   router.get('/issues/:id', auth, wrap((req, res) => res.json(getIssueDetail(db, idParam(req), req.user))));
 
   router.get('/staff', auth, requireAdmin, (_req, res) => {
-    res.json(db.prepare("SELECT id, name, department FROM users WHERE role = 'staff' ORDER BY department, name").all());
+    res.json(db.prepare("SELECT id, name, department FROM users WHERE role = 'staff' AND active = 1 ORDER BY department, name").all());
   });
 
   router.post('/issues/:id/acknowledge', auth, requireRole('admin', 'staff'), wrap((req, res) => {
