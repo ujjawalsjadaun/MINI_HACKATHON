@@ -501,4 +501,8 @@ export default {
   "You cannot deactivate your own account": "ଆପଣ ନିଜର ଖାତା ନିଷ୍କ୍ରିୟ କରିପାରିବେ ନାହିଁ",
   "There must be at least one active admin": "ଅତିକମ୍ରେ ଜଣେ ସକ୍ରିୟ ଆଡ୍ମିନ୍ ରହିବା ଉଚିତ",
   "Invalid id": "ଅବୈଧ ଆଇଡି",
+
+  // Rate limits
+  "Too many requests. Please slow down and try again shortly.": "ଅତ୍ୟଧିକ ଅନୁରୋଧ। ଦୟାକରି ଧୀରେ ଚାଲନ୍ତୁ ଏବଂ କିଛି ସମୟ ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
+  "Too many accounts were created from this connection. Try again later.": "ଏହି ସଂଯୋଗରୁ ଅନେକ ଖାତା ସୃଷ୍ଟି ହୋଇଛି। ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
 };

@@ -533,4 +533,8 @@ export default {
   "You cannot deactivate your own account": "আপুনি নিজৰ একাউণ্ট নিষ্ক্ৰিয় কৰিব নোৱাৰে",
   "There must be at least one active admin": "অতি কমেও এজন সক্ৰিয় এডমিন থাকিব লাগিব",
   "Invalid id": "অবৈধ আইডি",
+
+  // Rate limits
+  "Too many requests. Please slow down and try again shortly.": "বহুত বেছি অনুৰোধ। অনুগ্ৰহ কৰি লাহে লাহে কৰক আৰু অলপ পিছত আকৌ চেষ্টা কৰক।",
+  "Too many accounts were created from this connection. Try again later.": "এই সংযোগৰ পৰা বহুত বেছি একাউণ্ট সৃষ্টি কৰা হ'ল। পিছত আকৌ চেষ্টা কৰক।",
 };

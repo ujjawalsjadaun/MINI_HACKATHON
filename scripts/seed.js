@@ -4,6 +4,9 @@
 //
 //   npm run seed
 //   ADMIN_EMAIL=you@nitap.ac.in ADMIN_PASSWORD=choose-one npm run seed
+//   ADMIN_ONLY=1 ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run seed     only the admin account, no demo data (real use)
+//
+// In production (NODE_ENV=production) ADMIN_PASSWORD is required and must be strong: the demo password is public.
 import { createUser, isInstituteEmail } from '../server/auth.js';
 import { SECURITY_QUESTIONS } from '../server/config.js';
 import { openDb } from '../server/db.js';
@@ -21,6 +24,13 @@ const security = { question: SECURITY_QUESTIONS[2], answer: 'nitap' };
 const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@nitap.ac.in').toLowerCase();
 const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin1234';
 
+const adminOnly = Boolean(process.env.ADMIN_ONLY);
+if (adminOnly || process.env.NODE_ENV === 'production') {
+  if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.length < 10 || process.env.ADMIN_PASSWORD === 'admin1234') {
+    console.error('Set ADMIN_PASSWORD to a private password of at least 10 characters (the demo password is public).');
+    process.exit(1);
+  }
+}
 if (!isInstituteEmail(adminEmail)) {
   console.error(`ADMIN_EMAIL must end in @nitap.ac.in, or the admin could not sign in (got ${adminEmail}).`);
   process.exit(1);
@@ -31,6 +41,10 @@ if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(adminEmail)) {
 }
 
 const admin = { id: createUser(db, { name: 'Campus Admin', email: adminEmail, password: adminPassword, role: 'admin' }), name: 'Campus Admin', role: 'admin' };
+if (adminOnly) {
+  console.log(`Admin account created: ${adminEmail}. Sign in, then add staff on the People page.`);
+  process.exit(0);
+}
 const student = (name) => ({ id: createUser(db, { name, email: `${name.toLowerCase()}@nitap.ac.in`, password: 'student1234', security }), name });
 const [asha, bimal, chen, divya, esha] = ['Asha', 'Bimal', 'Chen', 'Divya', 'Esha'].map(student);
 

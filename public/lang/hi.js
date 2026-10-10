@@ -532,4 +532,8 @@ export default {
   "You cannot deactivate your own account": "आप अपना खाता निष्क्रिय नहीं कर सकते",
   "There must be at least one active admin": "कम से कम एक सक्रिय एडमिन होना चाहिए",
   "Invalid id": "अमान्य आईडी",
+
+  // Rate limits
+  "Too many requests. Please slow down and try again shortly.": "बहुत अधिक अनुरोध। कृपया धीमे चलें और थोड़ी देर में फिर कोशिश करें।",
+  "Too many accounts were created from this connection. Try again later.": "इस कनेक्शन से बहुत अधिक खाते बनाए गए। बाद में फिर कोशिश करें।",
 };

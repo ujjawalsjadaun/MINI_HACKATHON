@@ -112,6 +112,10 @@ function moveDemoAccounts(db) {
   db.exec("UPDATE OR IGNORE users SET email = replace(email, '@campusfix.local', '@nitap.ac.in') WHERE email LIKE '%@campusfix.local'");
 }
 
+export function purgeExpiredSessions(db, now = Date.now()) {
+  return Number(db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(now).changes);
+}
+
 // node:sqlite has no transaction helper; this keeps multi-statement writes atomic.
 export function transaction(db, fn) {
   db.exec('BEGIN');

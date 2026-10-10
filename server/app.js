@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { aiRoutes, createAssistant } from './ai.js';
 import { authenticate, authRoutes, requireAdmin } from './auth.js';
 import { buildInsights } from './insights.js';
@@ -11,11 +10,28 @@ import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
 import { securityQuestionRoutes } from './security-question.js';
 import { qrRoutes } from './qr.js';
+import { rateLimiter } from './ratelimit.js';
+import { root, uploadDir as defaultUploadDir } from './paths.js';
 import { userRoutes } from './users.js';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export function createApp(db, { uploadDir = process.env.UPLOAD_DIR || path.join(root, 'uploads'), assistant = createAssistant(), emergencyFile = process.env.EMERGENCY_FILE || path.join(root, 'private', 'emergency-contacts.json') } = {}) {
+const production = () => process.env.NODE_ENV === 'production';
+
+// Limits per client address. Generous on purpose: a whole hostel can share one Wi-Fi address. Switched on in
+// production (RATE_LIMIT=0 turns them off, RATE_LIMIT=1 on elsewhere) so ordinary development and tests are not throttled.
+const defaultRateLimits = () => ((process.env.RATE_LIMIT ?? (production() ? '1' : '0')) === '0' ? null : {
+  api: { windowMs: 60_000, max: 1200 },
+  register: { windowMs: 3_600_000, max: 40, error: () => new HttpError(429, 'Too many accounts were created from this connection. Try again later.') },
+});
+
+export function createApp(db, {
+  uploadDir = defaultUploadDir(),
+  assistant = createAssistant(),
+  emergencyFile = process.env.EMERGENCY_FILE || path.join(root, 'private', 'emergency-contacts.json'),
+  rateLimits = defaultRateLimits(),
+  logRequests = (process.env.LOG_REQUESTS ?? (production() ? '1' : '0')) !== '0',
+  log = console.log,
+} = {}) {
   const app = express();
   const api = express.Router();
   app.disable('x-powered-by');
@@ -23,6 +39,7 @@ export function createApp(db, { uploadDir = process.env.UPLOAD_DIR || path.join(
   // the login lock-out apply to everyone at once. Set TRUST_PROXY=1 on such hosts (the number of proxies in front).
   if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
   app.use((_req, res, next) => {
+    if (production()) res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains'); // only ever sent over https by a proper host
     res.set({
       'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'",
       'X-Content-Type-Options': 'nosniff',
@@ -31,6 +48,21 @@ export function createApp(db, { uploadDir = process.env.UPLOAD_DIR || path.join(
     });
     next();
   });
+  // One line per API request: method, path (never the query string, which can hold an email), status, time.
+  if (logRequests) {
+    app.use('/api', (req, res, next) => {
+      const started = process.hrtime.bigint();
+      res.on('finish', () => {
+        if (req.originalUrl === '/api/health') return;
+        log(`${new Date().toISOString()} ${req.ip} ${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Math.round(Number(process.hrtime.bigint() - started) / 1e6)}ms`);
+      });
+      next();
+    });
+  }
+  if (rateLimits) {
+    app.use('/api', rateLimiter(rateLimits.api));
+    app.post('/api/auth/register', rateLimiter(rateLimits.register));
+  }
   app.use(express.json({ limit: '100kb' }));
   app.use(express.static(path.join(root, 'public')));
   app.use('/uploads', express.static(uploadDir, { setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff') }));

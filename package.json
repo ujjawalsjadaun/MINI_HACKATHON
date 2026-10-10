@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node server/index.js",
     "seed": "node scripts/seed.js",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js",
     "test": "node --test test/*.test.js"
   },
   "engines": {
