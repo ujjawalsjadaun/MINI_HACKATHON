@@ -762,3 +762,122 @@ test('a deactivated student cannot reset a password through the security questio
   assert.match(reset.data.error, /cannot be reset this way/, 'the same answer as for any account that cannot be reset');
   db.prepare('UPDATE users SET active = 1 WHERE email = ?').run(email);
 });
+
+test('notifications tell the right people about the right things, once, and only their own', async () => {
+  const admin = await adminLogin();
+  const ishwar = await signup('Ishwar');
+  const lakshmi = await signup('Lakshmi');
+  makeStaff('Kabir', 'Electrical Maintenance');
+  const kabir = await staffLogin('Kabir');
+  const kabirId = (await call('GET', '/api/me', { token: kabir })).data.id;
+  const inbox = async (token) => (await call('GET', '/api/notifications', { token })).data;
+  const kinds = async (token) => (await inbox(token)).items.map((n) => n.kind).reverse();
+
+  assert.equal((await call('GET', '/api/notifications')).status, 401);
+  assert.deepEqual(await kinds(ishwar), [], 'nothing yet');
+
+  // Two students report the same fault (so both are reporters), one rating it an emergency.
+  const issueId = (await report(ishwar, 'Bare wires hanging from the ceiling near the stairs', { category: 'electrical', location: 'Lohit-2', urgency: 'emergency' })).data.issueId;
+  await report(lakshmi, 'Bare wires hanging from the ceiling near the stairs', { category: 'electrical', location: 'Lohit-2' });
+  const alert = (await inbox(admin)).items.find((n) => n.kind === 'new_emergency' && n.issue_id === issueId);
+  assert.ok(alert, 'admins hear about an emergency report at once');
+  assert.equal(alert.params.place, 'Lohit-2');
+  assert.deepEqual(await kinds(ishwar), [], 'reporters are not notified about their own report');
+
+  // The team acknowledges: both reporters are told, with the acknowledger\'s name.
+  await call('POST', `/api/issues/${issueId}/acknowledge`, { token: admin });
+  for (const token of [ishwar, lakshmi]) {
+    const n = (await inbox(token)).items[0];
+    assert.equal(n.kind, 'acknowledged');
+    assert.equal(n.params.name, 'Admin');
+    assert.equal(n.read, false);
+  }
+
+  // Assigning tells the staff member and the reporters; the admin who did it is told nothing.
+  const before = (await inbox(admin)).items.length;
+  await call('PATCH', `/api/issues/${issueId}`, { token: admin, body: { assignee_id: kabirId } });
+  assert.deepEqual(await kinds(kabir), ['assigned_you']);
+  assert.deepEqual((await kinds(ishwar)).slice(-1), ['assigned']);
+  assert.equal((await inbox(admin)).items.length, before, 'the person who acted is not notified');
+
+  // Staff move it along; the most important thing in each update is what the reporter hears.
+  await call('PATCH', `/api/issues/${issueId}`, { token: kabir, body: { status: 'in_progress' } });
+  assert.deepEqual((await kinds(ishwar)).slice(-1), ['in_progress']);
+  await call('PATCH', `/api/issues/${issueId}`, { token: kabir, body: { status: 'awaiting_confirmation', note: 'Replaced the damaged wiring' } });
+  const needs = (await inbox(lakshmi)).items[0];
+  assert.equal(needs.kind, 'needs_confirmation');
+  assert.equal(needs.params.note, 'Replaced the damaged wiring');
+
+  // A reporter says it is not fixed: the assigned staff member and admins hear; the reporter does not.
+  const adminBefore = (await inbox(admin)).unread;
+  assert.equal((await call('POST', `/api/issues/${issueId}/reopen`, { token: ishwar, body: { note: 'Still sparking' } })).status, 200);
+  assert.equal((await kinds(kabir)).at(-1), 'reopened');
+  assert.equal((await inbox(admin)).unread, adminBefore + 1);
+  assert.ok(!(await kinds(ishwar)).includes('reopened'));
+
+  // Fixed again and confirmed: the staff member and the other reporter hear it is resolved.
+  await call('PATCH', `/api/issues/${issueId}`, { token: kabir, body: { status: 'awaiting_confirmation' } });
+  await call('POST', `/api/issues/${issueId}/confirm`, { token: ishwar });
+  assert.equal((await kinds(kabir)).at(-1), 'resolved');
+  assert.equal((await kinds(lakshmi)).at(-1), 'resolved');
+  assert.notEqual((await kinds(ishwar)).at(-1), 'resolved', 'the person who confirmed is not told');
+
+  // Unread counts and marking as read: only your own, and only valid ids.
+  const mine = await inbox(lakshmi);
+  assert.ok(mine.unread > 0);
+  assert.equal((await call('GET', '/api/notifications/unread-count', { token: lakshmi })).data.unread, mine.unread);
+  const first = mine.items[0].id;
+  assert.equal((await call('POST', '/api/notifications/read', { token: ishwar, body: { ids: [first] } })).data.unread, (await inbox(ishwar)).unread, 'someone else cannot mark yours as read');
+  assert.equal((await inbox(lakshmi)).unread, mine.unread);
+  assert.equal((await call('POST', '/api/notifications/read', { token: lakshmi, body: { ids: [first] } })).data.unread, mine.unread - 1);
+  assert.equal((await call('POST', '/api/notifications/read', { token: lakshmi, body: { ids: 'all' } })).status, 400);
+  assert.equal((await call('POST', '/api/notifications/read', { token: lakshmi, body: {} })).data.unread, 0, 'no ids means mark everything read');
+  assert.ok((await inbox(lakshmi)).items.every((n) => n.read));
+});
+
+test('a deactivated account is not sent notifications, and old notifications are cleared', async () => {
+  const admin = await adminLogin();
+  const mohan = await signup('Mohan');
+  const issueId = (await report(mohan, 'Lights flicker in the common room all evening', { category: 'electrical', location: 'Papum' })).data.issueId;
+  const mohanId = (await call('GET', '/api/me', { token: mohan })).data.id;
+  db.prepare('UPDATE users SET active = 0 WHERE id = ?').run(mohanId);
+  await call('POST', `/api/issues/${issueId}/acknowledge`, { token: admin });
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ?').get(mohanId).n, 0);
+  db.prepare('UPDATE users SET active = 1 WHERE id = ?').run(mohanId);
+
+  await call('PATCH', `/api/issues/${issueId}`, { token: admin, body: { note: 'We are looking into it' } });
+  const { purgeOldNotifications } = await import('../server/db.js');
+  assert.equal(purgeOldNotifications(db, 90, Date.now()), 0, 'recent ones stay');
+  db.prepare('UPDATE notifications SET created_at = ? WHERE user_id = ?').run(Date.now() - 100 * 86_400_000, mohanId);
+  assert.equal(purgeOldNotifications(db, 90, Date.now()), 1, 'ones older than 90 days go');
+});
+
+test('anyone can change their own password: it needs the current one, signs out other devices and resists guessing', async () => {
+  const nikhil = await signup('Nikhil');
+  const email = 'nikhil@nitap.ac.in';
+  const change = (token, body) => call('PUT', '/api/me/password', { token, body });
+  const signIn = (password) => call('POST', '/api/auth/login', { body: { email, password } });
+
+  assert.equal((await call('PUT', '/api/me/password', { body: {} })).status, 401);
+  const phone = (await signIn('secret123')).data.token; // a second device
+  assert.equal((await change(nikhil, { current: 'wrong-one', password: 'a-new-secret' })).status, 403);
+  assert.equal((await change(nikhil, { current: 'secret123', password: 'abc' })).status, 400, 'too short');
+  assert.equal((await change(nikhil, { current: 'secret123', password: 'secret123' })).status, 400, 'must differ');
+  assert.equal((await change(nikhil, { current: 'secret123', password: 'a-new-secret' })).status, 200);
+
+  assert.equal((await signIn('secret123')).status, 401, 'the old password stops working');
+  assert.equal((await signIn('a-new-secret')).status, 200);
+  assert.equal((await call('GET', '/api/me', { token: nikhil })).status, 200, 'the device that changed it stays signed in');
+  assert.equal((await call('GET', '/api/me', { token: phone })).status, 401, 'other devices are signed out');
+
+  // Staff and admins need 8 characters; the admin can change theirs too.
+  const admin = await adminLogin();
+  assert.equal((await change(admin, { current: 'adminpass', password: 'short7!' })).status, 400);
+  assert.equal((await change(admin, { current: 'adminpass', password: 'adminpass2' })).status, 200);
+  assert.equal((await change(admin, { current: 'adminpass2', password: 'adminpass' })).status, 200, 'restored for the other tests');
+
+  // Guessing the current password through a stolen session is limited.
+  const fresh = (await signIn('a-new-secret')).data.token;
+  for (let i = 0; i < 5; i++) await change(fresh, { current: `guess-${i}`, password: 'whatever-new-1' });
+  assert.equal((await change(fresh, { current: 'a-new-secret', password: 'whatever-new-1' })).status, 429, 'locked even for the right password');
+});

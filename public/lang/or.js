@@ -505,4 +505,32 @@ export default {
   // Rate limits
   "Too many requests. Please slow down and try again shortly.": "ଅତ୍ୟଧିକ ଅନୁରୋଧ। ଦୟାକରି ଧୀରେ ଚାଲନ୍ତୁ ଏବଂ କିଛି ସମୟ ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
   "Too many accounts were created from this connection. Try again later.": "ଏହି ସଂଯୋଗରୁ ଅନେକ ଖାତା ସୃଷ୍ଟି ହୋଇଛି। ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
+
+  // Notifications
+  "Notifications": "ସୂଚନା",
+  "Notifications ({n} new)": "ସୂଚନା ({n}ଟି ନୂଆ)",
+  "The team has seen your report \"{title}\". Acknowledged by {name}.": "ଦଳ ଆପଣଙ୍କ ରିପୋର୍ଟ \"{title}\" ଦେଖିଛି। {name} ସ୍ୱୀକାର କରିଛନ୍ତି।",
+  "\"{title}\" has been assigned to {name}.": "\"{title}\" {name}ଙ୍କୁ ଦିଆଯାଇଛି।",
+  "Work has started on \"{title}\".": "\"{title}\" ଉପରେ କାମ ଆରମ୍ଭ ହୋଇଛି।",
+  "The team says \"{title}\" is fixed. Please confirm it, or reopen it.": "ଦଳ କହୁଛି \"{title}\" ଠିକ୍ ହୋଇଛି। ଦୟାକରି ନିଶ୍ଚିତ କରନ୍ତୁ, କିମ୍ବା ପୁଣି ଖୋଲନ୍ତୁ।",
+  "The team posted an update on \"{title}\".": "ଦଳ \"{title}\" ବିଷୟରେ ଅପଡେଟ୍ ଦେଇଛି।",
+  "\"{title}\" was assigned to you.": "\"{title}\" ଆପଣଙ୍କୁ ଦିଆଗଲା।",
+  "A reporter says \"{title}\" is not fixed.": "ଜଣେ ରିପୋର୍ଟର କହୁଛନ୍ତି \"{title}\" ଠିକ୍ ହୋଇନାହିଁ।",
+  "\"{title}\" was confirmed as fixed.": "\"{title}\" ଠିକ୍ ହେବା ନିଶ୍ଚିତ କରାଗଲା।",
+  "Emergency report at {place}: \"{title}\".": "{place}ରେ ଜରୁରୀକାଳୀନ ରିପୋର୍ଟ: \"{title}\"।",
+  "New": "ନୂଆ",
+  "Mark all as read": "ସବୁକୁ ପଢ଼ାଯାଇଛି ବୋଲି ଚିହ୍ନିତ କରନ୍ତୁ",
+  "Nothing new": "ନୂଆ କିଛି ନାହିଁ",
+  "You will see updates about your reports and your work here.": "ଆପଣଙ୍କ ରିପୋର୍ଟ ଓ କାମ ବିଷୟରେ ଅପଡେଟ୍ ଏଠାରେ ଦେଖିବେ।",
+  "ids must be a list of numbers": "ids ସଂଖ୍ୟାର ତାଲିକା ହେବା ଉଚିତ",
+
+  // Change your own password
+  "Change password": "ପାସୱାର୍ଡ ବଦଳାନ୍ତୁ",
+  "Change your password": "ଆପଣଙ୍କ ପାସୱାର୍ଡ ବଦଳାନ୍ତୁ",
+  "Your current password": "ଆପଣଙ୍କ ବର୍ତ୍ତମାନର ପାସୱାର୍ଡ",
+  "New password again": "ନୂଆ ପାସୱାର୍ଡ ପୁଣି",
+  "At least 8 characters.": "ଅତିକମ୍ରେ ୮ଟି ଅକ୍ଷର।",
+  "The two new passwords do not match.": "ଦୁଇଟି ନୂଆ ପାସୱାର୍ଡ ମେଳ ଖାଉନାହିଁ।",
+  "Password changed. Your other devices have been signed out.": "ପାସୱାର୍ଡ ବଦଳିଲା। ଆପଣଙ୍କ ଅନ୍ୟ ଡିଭାଇସ୍ ସାଇନ୍ ଆଉଟ୍ କରାଗଲା।",
+  "Choose a new password that is different from the current one": "ବର୍ତ୍ତମାନର ପାସୱାର୍ଡଠାରୁ ଭିନ୍ନ ଏକ ନୂଆ ପାସୱାର୍ଡ ବାଛନ୍ତୁ",
 };

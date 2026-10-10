@@ -3,6 +3,7 @@ import { transaction } from './db.js';
 import { MATCH_THRESHOLD, explainMatch, findDuplicate, normalizeRoom, sameRoomOrUnknown, similarity, tokenize } from './dedupe.js';
 import { HttpError, requireString } from './http.js';
 import { feedbackFor } from './feedback.js';
+import { adminIds, notify, reporterIds, shortNote } from './notifications.js';
 import { priorityOf, slaOf } from './priority.js';
 
 const ISSUE_SELECT = `
@@ -90,12 +91,14 @@ export function nearbyIssues(db, { location, category = '', detail = '', descrip
 
 // A team claiming a fix is only a claim. New evidence that the problem persists reopens it.
 function reopenIfAwaiting(db, issueId, note, now) {
-  const issue = db.prepare('SELECT status, assigned_to FROM issues WHERE id = ?').get(issueId);
+  const issue = db.prepare('SELECT title, status, assigned_to, assigned_user_id FROM issues WHERE id = ?').get(issueId);
   if (issue.status !== 'awaiting_confirmation') return false;
   const next = issue.assigned_to ? 'assigned' : 'open';
   db.prepare('UPDATE issues SET status = ?, reopen_count = reopen_count + 1, resolved_at = NULL, updated_at = ? WHERE id = ?').run(next, now, issueId);
   db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
     .run(issueId, next, `Reopened: ${note}`, 'reporter', now);
+  // The person holding the work, and the admins, need to know a claimed fix did not hold.
+  notify(db, [issue.assigned_user_id, ...adminIds(db)], { issueId, kind: 'reopened', params: { title: issue.title, note: shortNote(note) } }, now);
   return true;
 }
 
@@ -115,6 +118,8 @@ export function confirmFix(db, user, issueId, now = Date.now()) {
     db.prepare("UPDATE issues SET status = 'resolved', resolved_at = ?, updated_at = ? WHERE id = ?").run(now, now, issueId);
     db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(issueId, 'resolved', 'Fix confirmed by a reporter', 'reporter', now);
+    const issue = db.prepare('SELECT title, assigned_user_id FROM issues WHERE id = ?').get(issueId);
+    notify(db, [issue.assigned_user_id, ...reporterIds(db, issueId)], { issueId, kind: 'resolved', params: { title: issue.title }, exceptUserId: user.id }, now);
   });
 }
 
@@ -124,6 +129,13 @@ export function rejectFix(db, user, issueId, note = '', now = Date.now()) {
     const reason = typeof note === 'string' && note.trim() ? note.trim().slice(0, 300) : 'Reporter says it is not fixed';
     reopenIfAwaiting(db, issueId, reason, now);
   });
+}
+
+// A report rated Emergency should not wait for an admin to open the queue.
+function alertAdminsIfEmergency(db, issueId, input, now) {
+  if (input.urgency !== 'emergency') return;
+  const { title } = db.prepare('SELECT title FROM issues WHERE id = ?').get(issueId);
+  notify(db, adminIds(db), { issueId, kind: 'new_emergency', params: { title, place: input.location } }, now);
 }
 
 // Either merges the report into an existing active issue or opens a new one.
@@ -140,6 +152,7 @@ export function submitReport(db, user, input, photo, now = Date.now()) {
         .run(issueId, user.id, input.description, photo, reason, input.urgency, now);
       db.prepare('UPDATE issues SET updated_at = ?, pin_x = COALESCE(pin_x, ?), pin_y = COALESCE(pin_y, ?) WHERE id = ?').run(now, input.pin?.x ?? null, input.pin?.y ?? null, issueId);
       reopenIfAwaiting(db, issueId, 'A new report came in after the fix was claimed', now);
+      alertAdminsIfEmergency(db, issueId, input, now);
       return { issueId, merged: true, reason };
     }
 
@@ -154,6 +167,7 @@ export function submitReport(db, user, input, photo, now = Date.now()) {
       .run(issueId, user.id, input.description, photo, input.urgency, now);
     db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(issueId, 'open', `Reported and routed to ${department}`, 'system', now);
+    alertAdminsIfEmergency(db, issueId, input, now);
     return { issueId, merged: false, reason: null };
   });
 }

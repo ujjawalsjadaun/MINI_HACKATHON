@@ -536,4 +536,32 @@ export default {
   // Rate limits
   "Too many requests. Please slow down and try again shortly.": "बहुत अधिक अनुरोध। कृपया धीमे चलें और थोड़ी देर में फिर कोशिश करें।",
   "Too many accounts were created from this connection. Try again later.": "इस कनेक्शन से बहुत अधिक खाते बनाए गए। बाद में फिर कोशिश करें।",
+
+  // Notifications
+  "Notifications": "सूचनाएँ",
+  "Notifications ({n} new)": "सूचनाएँ ({n} नई)",
+  "The team has seen your report \"{title}\". Acknowledged by {name}.": "टीम ने आपकी रिपोर्ट \"{title}\" देख ली है। {name} ने स्वीकार किया।",
+  "\"{title}\" has been assigned to {name}.": "\"{title}\" {name} को सौंपा गया है।",
+  "Work has started on \"{title}\".": "\"{title}\" पर काम शुरू हो गया है।",
+  "The team says \"{title}\" is fixed. Please confirm it, or reopen it.": "टीम का कहना है कि \"{title}\" ठीक हो गया है। कृपया पुष्टि करें, या फिर से खोलें।",
+  "The team posted an update on \"{title}\".": "टीम ने \"{title}\" पर अपडेट दिया है।",
+  "\"{title}\" was assigned to you.": "\"{title}\" आपको सौंपा गया।",
+  "A reporter says \"{title}\" is not fixed.": "एक रिपोर्टर का कहना है कि \"{title}\" ठीक नहीं हुआ है।",
+  "\"{title}\" was confirmed as fixed.": "\"{title}\" के ठीक होने की पुष्टि हो गई।",
+  "Emergency report at {place}: \"{title}\".": "{place} पर आपातकालीन रिपोर्ट: \"{title}\"।",
+  "New": "नई",
+  "Mark all as read": "सभी को पढ़ा हुआ चिह्नित करें",
+  "Nothing new": "कुछ नया नहीं",
+  "You will see updates about your reports and your work here.": "आपकी रिपोर्ट और आपके काम के बारे में अपडेट यहाँ दिखेंगे।",
+  "ids must be a list of numbers": "ids संख्याओं की सूची होनी चाहिए",
+
+  // Change your own password
+  "Change password": "पासवर्ड बदलें",
+  "Change your password": "अपना पासवर्ड बदलें",
+  "Your current password": "आपका वर्तमान पासवर्ड",
+  "New password again": "नया पासवर्ड फिर से",
+  "At least 8 characters.": "कम से कम 8 अक्षर।",
+  "The two new passwords do not match.": "दोनों नए पासवर्ड मेल नहीं खाते।",
+  "Password changed. Your other devices have been signed out.": "पासवर्ड बदल गया। आपके अन्य उपकरण साइन आउट कर दिए गए हैं।",
+  "Choose a new password that is different from the current one": "ऐसा नया पासवर्ड चुनें जो वर्तमान पासवर्ड से अलग हो",
 };

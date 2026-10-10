@@ -10,6 +10,7 @@ import { INSTITUTE, latestNotices } from './institute.js';
 import { issueRoutes } from './issue-routes.js';
 import { securityQuestionRoutes } from './security-question.js';
 import { qrRoutes } from './qr.js';
+import { notificationRoutes } from './notifications.js';
 import { rateLimiter } from './ratelimit.js';
 import { root, uploadDir as defaultUploadDir } from './paths.js';
 import { userRoutes } from './users.js';
@@ -86,6 +87,7 @@ export function createApp(db, {
   securityQuestionRoutes(db, api);
   qrRoutes(db, api);
   userRoutes(db, api, requireAdmin);
+  notificationRoutes(db, api);
   emergencyRoutes(db, api, emergencyFile);
   aiRoutes(db, api, assistant);
   issueRoutes(db, api, { uploadDir });

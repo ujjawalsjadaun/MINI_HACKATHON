@@ -70,6 +70,18 @@ CREATE TABLE IF NOT EXISTS feedback (
   UNIQUE (issue_id, user_id)
 );
 
+-- Alerts for the people an issue concerns. Stored as a kind plus details so they can be shown in any language.
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  params TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  read_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at, created_at);
+
 CREATE TABLE IF NOT EXISTS status_log (
   id INTEGER PRIMARY KEY,
   issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
@@ -114,6 +126,11 @@ function moveDemoAccounts(db) {
 
 export function purgeExpiredSessions(db, now = Date.now()) {
   return Number(db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(now).changes);
+}
+
+// Notifications older than this many days are no longer useful and are removed.
+export function purgeOldNotifications(db, days = 90, now = Date.now()) {
+  return Number(db.prepare('DELETE FROM notifications WHERE created_at < ?').run(now - days * 86_400_000).changes);
 }
 
 // node:sqlite has no transaction helper; this keeps multi-statement writes atomic.

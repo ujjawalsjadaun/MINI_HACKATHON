@@ -7,9 +7,9 @@ const port = Number(process.env.PORT) || 3000;
 const production = process.env.NODE_ENV === 'production';
 
 // node:sqlite needs a recent Node; explain that instead of crashing with an obscure import error.
-let openDb, createApp, purgeExpiredSessions, scheduleBackups;
+let openDb, createApp, purgeExpiredSessions, purgeOldNotifications, scheduleBackups;
 try {
-  ({ openDb, purgeExpiredSessions } = await import('./db.js'));
+  ({ openDb, purgeExpiredSessions, purgeOldNotifications } = await import('./db.js'));
   ({ createApp } = await import('./app.js'));
   ({ scheduleBackups } = await import('./backup.js'));
 } catch (err) {
@@ -49,9 +49,10 @@ if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
   }
 }
 
-// Expired sign-in sessions are useless rows; clear them now and hourly.
-purgeExpiredSessions(db);
-const sessionCleanup = setInterval(() => purgeExpiredSessions(db), 3_600_000);
+// Expired sign-in sessions and old notifications are useless rows; clear them now and hourly.
+const tidy = () => { purgeExpiredSessions(db); purgeOldNotifications(db); };
+tidy();
+const sessionCleanup = setInterval(tidy, 3_600_000);
 sessionCleanup.unref();
 
 // Automatic backups: daily in production; set BACKUP_EVERY_HOURS to change it, or to 0 to turn them off.

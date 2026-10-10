@@ -95,4 +95,7 @@ updateIssue(db, admin, toilet, { status: 'awaiting_confirmation', note: 'Cleaned
 confirmFix(db, esha, toilet, ago(5));
 submitFeedback(db, esha, toilet, { rating: 2, comment: 'Cleaned, but the water supply failed again after two days.' }, ago(4.5));
 
+// The history above ran through the real services, which raise notifications; nobody has missed anything yet.
+db.exec('UPDATE notifications SET read_at = created_at WHERE read_at IS NULL');
+
 console.log(`Seeded.\n  Admin:   ${adminEmail} / ${process.env.ADMIN_PASSWORD ? '(your ADMIN_PASSWORD)' : adminPassword}\n  Student: asha@nitap.ac.in / student1234 (also bimal, chen, divya, esha)\n  Staff:   ramesh@nitap.ac.in / staff1234 (also priya, suresh, kavita, arun)`);

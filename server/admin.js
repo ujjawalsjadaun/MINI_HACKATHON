@@ -1,6 +1,7 @@
 import { STATUSES } from './config.js';
 import { transaction } from './db.js';
 import { HttpError } from './http.js';
+import { notify, reporterIds, shortNote } from './notifications.js';
 
 // Admins assign work and may update any issue; staff may only update issues assigned to them.
 // Every change is written to the timeline students can see.
@@ -49,6 +50,21 @@ export function updateIssue(db, actor, issueId, body = {}, now = Date.now()) {
     if (note) parts.push(note);
     db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(issueId, nextStatus, parts.join(' - '), actor.name, now);
+
+    // Tell the person given the work, and the reporters about the one thing that matters most in this update.
+    const newlyAssigned = assignedUserId !== issue.assigned_user_id && assignedUserId != null;
+    if (newlyAssigned) notify(db, [assignedUserId], { issueId, kind: 'assigned_you', params: { title: issue.title }, exceptUserId: actor.id }, now);
+    const changed = nextStatus !== issue.status;
+    const params = { title: issue.title };
+    let kind;
+    if (changed && nextStatus === 'awaiting_confirmation') kind = 'needs_confirmation';
+    else if (changed && nextStatus === 'in_progress') kind = 'in_progress';
+    else if (newlyAssigned) { kind = 'assigned'; params.name = assignedTo; }
+    else if (note) kind = 'note';
+    if (kind) {
+      if (shortNote(note)) params.note = shortNote(note);
+      notify(db, reporterIds(db, issueId), { issueId, kind, params, exceptUserId: actor.id }, now);
+    }
   });
 }
 
@@ -68,5 +84,6 @@ export function acknowledgeIssue(db, actor, issueId, now = Date.now()) {
       .run(now, actor.name, now, issueId);
     db.prepare('INSERT INTO status_log (issue_id, status, note, actor, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(issueId, issue.status, 'Acknowledged: the team has seen this report', actor.name, now);
+    notify(db, reporterIds(db, issueId), { issueId, kind: 'acknowledged', params: { title: issue.title, name: actor.name }, exceptUserId: actor.id }, now);
   });
 }

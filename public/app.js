@@ -10,6 +10,7 @@ import './views/emergency.js';
 import './views/people.js';
 import './views/issues.js';
 import './views/map.js';
+import './views/notifications.js';
 import './views/report.js';
 import './views/security.js';
 
@@ -20,10 +21,32 @@ const nav = document.getElementById('nav');
 const PUBLIC_PATHS = new Set(['/login', '/forgot']);
 
 const NAV = {
-  admin: [['/admin', 'Issues'], ['/map', 'Map'], ['/insights', 'Insights'], ['/admin/qr', 'QR tags'], ['/admin/people', 'People'], ['/emergency', 'Emergency']],
+  admin: [['/admin', 'Issues'], ['/map', 'Map'], ['/insights', 'Insights'], ['/admin/qr', 'QR tags'], ['/admin/people', 'People'], ['/emergency', 'Emergency'], ['/security', 'Security']],
   staff: [['/admin', 'My assignments'], ['/map', 'Map'], ['/emergency', 'Emergency'], ['/security', 'Security']],
   student: [['/report', 'Report issue'], ['/mine', 'My complaints'], ['/feed', 'Campus feed'], ['/map', 'Map'], ['/emergency', 'Emergency'], ['/security', 'Security']],
 };
+
+// The bell: the unread count is fetched now, whenever something changes, and every minute while the page is open.
+let unread = 0;
+const bellLabel = () => (unread > 0 ? t('Notifications ({n} new)', { n: unread }) : t('Notifications'));
+function paintBell() {
+  document.title = unread > 0 ? `(${unread}) ${BASE_TITLE}` : BASE_TITLE; // also when signed out, so the count never lingers
+  const bell = document.querySelector('a.bell');
+  if (!bell) return;
+  bell.setAttribute('aria-label', bellLabel());
+  const count = bell.querySelector('.bell-count');
+  count.textContent = unread > 99 ? '99+' : String(unread);
+  count.hidden = unread === 0;
+}
+async function refreshBell() {
+  if (!session.user) { unread = 0; return paintBell(); }
+  try { ({ unread } = await api('/notifications/unread-count')); } catch { return; } // a missed poll changes nothing
+  paintBell();
+}
+const BASE_TITLE = document.title;
+window.addEventListener('notifications:changed', refreshBell);
+setInterval(() => { if (!document.hidden) refreshBell(); }, 60_000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshBell(); });
 
 function renderNav() {
   const user = session.user;
@@ -37,6 +60,7 @@ function renderNav() {
   nav.replaceChildren(...[
     ...links.map(([path, text]) =>
       h('a', { href: `#${path}`, 'aria-current': path === active ? 'page' : null }, t(text))),
+    user && h('a', { href: '#/notifications', class: 'bell', 'aria-label': bellLabel(), 'aria-current': current === '/notifications' ? 'page' : null }, h('span', { 'aria-hidden': 'true' }, '🔔'), h('span', { class: 'bell-count', hidden: unread === 0 }, String(unread))),
     user && h('span', { class: 'who' }, `${user.name} (${t(user.role)})`),
     language,
     user && h('button', { type: 'button', onclick: signOut }, t('Sign out')),
@@ -64,6 +88,7 @@ async function render() {
   if (user && (PUBLIC_PATHS.has(path) || path === '/')) return go(homeFor(user));
 
   renderNav();
+  refreshBell();
   if (path === '/login') return main.replaceChildren(authView());
   if (path === '/forgot') return main.replaceChildren(forgotView());
 

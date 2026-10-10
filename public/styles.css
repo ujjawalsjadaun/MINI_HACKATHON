@@ -93,6 +93,15 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .badge { display: inline-block; padding: .1rem .6rem; border-radius: 999px; font-size: .78rem; font-weight: 700; border: 1px solid currentColor; text-transform: capitalize; white-space: nowrap; }
 .badge.critical { color: var(--critical); }
+/* Flex and grid rules on a class would otherwise win over the hidden attribute. */
+[hidden] { display: none !important; }
+.row select { width: auto; min-width: 14rem; }
+.bell { position: relative; text-decoration: none; padding-right: .2rem; }
+.bell-count { position: absolute; top: -.5rem; right: -.6rem; min-width: 1.2rem; padding: 0 .3rem; border-radius: 999px; background: var(--danger, #b3261e); color: #fff; font-size: .72rem; font-weight: 700; line-height: 1.2rem; text-align: center; }
+.bell-count[hidden] { display: none; }
+.notification.unread { border-top-color: var(--accent); background: rgba(200, 150, 46, .08); }
+.notification .dot { display: inline-block; width: .55rem; height: .55rem; margin-right: .5rem; border-radius: 50%; background: var(--accent); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .card.inactive { opacity: .7; border-top-color: var(--muted); }
 .badge.high { color: var(--high); }
 .badge.medium { color: var(--medium); }

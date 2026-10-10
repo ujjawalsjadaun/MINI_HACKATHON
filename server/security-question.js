@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { SECURITY_QUESTIONS } from './config.js';
 import { authenticate, createLoginThrottle, hashPassword, normalizeAnswer, requireInstituteEmail, setSecurityQuestion, validateSecurity, verifyPassword } from './auth.js';
 import { HttpError, requireString, wrap } from './http.js';
+import { MIN_STAFF_PASSWORD } from './users.js';
 
 // A fixed salt and hash to check against when the account cannot be reset this way, so a missing
 // account takes about as long to answer as a real one.
@@ -45,6 +46,27 @@ export function securityQuestionRoutes(db, router) {
     const next = hashPassword(password);
     db.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?').run(next.hash, next.salt, user.id);
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id); // sign the user out everywhere
+    res.json({ ok: true });
+  }));
+
+  // Anyone can change their own password. The current one is required, wrong guesses are limited (a stolen
+  // session must not become a way to guess it), and every other device is signed out.
+  const byUser = createLoginThrottle();
+  router.put('/me/password', auth, wrap((req, res) => {
+    const key = `password:${req.user.id}`;
+    if (byUser.isLocked(key)) throw new HttpError(429, 'Too many wrong answers. Try again in a few minutes.');
+    const current = requireString(req.body?.current, 'Current password', { max: 100 });
+    const row = db.prepare('SELECT password_hash, salt, role FROM users WHERE id = ?').get(req.user.id);
+    if (!verifyPassword(current, row.salt, row.password_hash)) {
+      byUser.fail(key);
+      throw new HttpError(403, 'Your current password is not correct');
+    }
+    byUser.clear(key);
+    const password = requireString(req.body?.password, 'New password', { min: row.role === 'student' ? 6 : MIN_STAFF_PASSWORD, max: 100 });
+    if (password === current) throw new HttpError(400, 'Choose a new password that is different from the current one');
+    const next = hashPassword(password);
+    db.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?').run(next.hash, next.salt, req.user.id);
+    db.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').run(req.user.id, req.token);
     res.json({ ok: true });
   }));
 

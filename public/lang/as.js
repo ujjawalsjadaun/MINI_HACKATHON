@@ -537,4 +537,32 @@ export default {
   // Rate limits
   "Too many requests. Please slow down and try again shortly.": "বহুত বেছি অনুৰোধ। অনুগ্ৰহ কৰি লাহে লাহে কৰক আৰু অলপ পিছত আকৌ চেষ্টা কৰক।",
   "Too many accounts were created from this connection. Try again later.": "এই সংযোগৰ পৰা বহুত বেছি একাউণ্ট সৃষ্টি কৰা হ'ল। পিছত আকৌ চেষ্টা কৰক।",
+
+  // Notifications
+  "Notifications": "জাননী",
+  "Notifications ({n} new)": "জাননী ({n}টা নতুন)",
+  "The team has seen your report \"{title}\". Acknowledged by {name}.": "দলে আপোনাৰ প্ৰতিবেদন \"{title}\" দেখিছে। {name}ৰ দ্বাৰা স্বীকৃত।",
+  "\"{title}\" has been assigned to {name}.": "\"{title}\" {name}ক দিয়া হৈছে।",
+  "Work has started on \"{title}\".": "\"{title}\"ৰ ওপৰত কাম আৰম্ভ হৈছে।",
+  "The team says \"{title}\" is fixed. Please confirm it, or reopen it.": "দলে কৈছে \"{title}\" মেৰামতি হৈছে। অনুগ্ৰহ কৰি নিশ্চিত কৰক, বা পুনৰ খোলক।",
+  "The team posted an update on \"{title}\".": "দলে \"{title}\"ৰ ওপৰত আপডেট দিছে।",
+  "\"{title}\" was assigned to you.": "\"{title}\" আপোনাক দিয়া হ'ল।",
+  "A reporter says \"{title}\" is not fixed.": "এজন প্ৰতিবেদকে কৈছে \"{title}\" মেৰামতি হোৱা নাই।",
+  "\"{title}\" was confirmed as fixed.": "\"{title}\" মেৰামতি হোৱাৰ কথা নিশ্চিত কৰা হ'ল।",
+  "Emergency report at {place}: \"{title}\".": "{place}ত জৰুৰীকালীন প্ৰতিবেদন: \"{title}\"।",
+  "New": "নতুন",
+  "Mark all as read": "সকলোবোৰ পঢ়া বুলি চিহ্নিত কৰক",
+  "Nothing new": "নতুন একো নাই",
+  "You will see updates about your reports and your work here.": "আপোনাৰ প্ৰতিবেদন আৰু কামৰ বিষয়ে আপডেট ইয়াত দেখা পাব।",
+  "ids must be a list of numbers": "ids সংখ্যাৰ তালিকা হ'ব লাগিব",
+
+  // Change your own password
+  "Change password": "পাছৱৰ্ড সলনি কৰক",
+  "Change your password": "আপোনাৰ পাছৱৰ্ড সলনি কৰক",
+  "Your current password": "আপোনাৰ বৰ্তমানৰ পাছৱৰ্ড",
+  "New password again": "নতুন পাছৱৰ্ড আকৌ",
+  "At least 8 characters.": "অতি কমেও ৮টা আখৰ।",
+  "The two new passwords do not match.": "দুটা নতুন পাছৱৰ্ড মিলা নাই।",
+  "Password changed. Your other devices have been signed out.": "পাছৱৰ্ড সলনি হ'ল। আপোনাৰ আন ডিভাইচবোৰ ছাইন আউট কৰা হ'ল।",
+  "Choose a new password that is different from the current one": "বৰ্তমানৰ পাছৱৰ্ডতকৈ বেলেগ এটা নতুন পাছৱৰ্ড বাছক",
 };

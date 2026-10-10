@@ -505,4 +505,32 @@ export default {
   // Rate limits
   "Too many requests. Please slow down and try again shortly.": "অনেক বেশি অনুরোধ। অনুগ্রহ করে একটু ধীরে চলুন এবং কিছুক্ষণ পরে আবার চেষ্টা করুন।",
   "Too many accounts were created from this connection. Try again later.": "এই সংযোগ থেকে অনেক বেশি অ্যাকাউন্ট তৈরি হয়েছে। পরে আবার চেষ্টা করুন।",
+
+  // Notifications
+  "Notifications": "বিজ্ঞপ্তি",
+  "Notifications ({n} new)": "বিজ্ঞপ্তি ({n}টি নতুন)",
+  "The team has seen your report \"{title}\". Acknowledged by {name}.": "দল আপনার রিপোর্ট \"{title}\" দেখেছে। {name} স্বীকার করেছেন।",
+  "\"{title}\" has been assigned to {name}.": "\"{title}\" {name}-কে দেওয়া হয়েছে।",
+  "Work has started on \"{title}\".": "\"{title}\"-এর কাজ শুরু হয়েছে।",
+  "The team says \"{title}\" is fixed. Please confirm it, or reopen it.": "দল বলছে \"{title}\" ঠিক হয়েছে। অনুগ্রহ করে নিশ্চিত করুন, অথবা আবার খুলুন।",
+  "The team posted an update on \"{title}\".": "দল \"{title}\"-এর বিষয়ে আপডেট দিয়েছে।",
+  "\"{title}\" was assigned to you.": "\"{title}\" আপনাকে দেওয়া হয়েছে।",
+  "A reporter says \"{title}\" is not fixed.": "একজন রিপোর্টার বলছেন \"{title}\" ঠিক হয়নি।",
+  "\"{title}\" was confirmed as fixed.": "\"{title}\" ঠিক হওয়ার বিষয়টি নিশ্চিত করা হয়েছে।",
+  "Emergency report at {place}: \"{title}\".": "{place}-এ জরুরি রিপোর্ট: \"{title}\"।",
+  "New": "নতুন",
+  "Mark all as read": "সব পঠিত হিসেবে চিহ্নিত করুন",
+  "Nothing new": "নতুন কিছু নেই",
+  "You will see updates about your reports and your work here.": "আপনার রিপোর্ট ও কাজ সম্পর্কে আপডেট এখানে দেখতে পাবেন।",
+  "ids must be a list of numbers": "ids সংখ্যার তালিকা হতে হবে",
+
+  // Change your own password
+  "Change password": "পাসওয়ার্ড বদলান",
+  "Change your password": "আপনার পাসওয়ার্ড বদলান",
+  "Your current password": "আপনার বর্তমান পাসওয়ার্ড",
+  "New password again": "নতুন পাসওয়ার্ড আবার",
+  "At least 8 characters.": "কমপক্ষে ৮টি অক্ষর।",
+  "The two new passwords do not match.": "দুটি নতুন পাসওয়ার্ড মেলেনি।",
+  "Password changed. Your other devices have been signed out.": "পাসওয়ার্ড বদলানো হয়েছে। আপনার অন্য ডিভাইসগুলি সাইন আউট করা হয়েছে।",
+  "Choose a new password that is different from the current one": "বর্তমান পাসওয়ার্ড থেকে আলাদা একটি নতুন পাসওয়ার্ড বেছে নিন",
 };
