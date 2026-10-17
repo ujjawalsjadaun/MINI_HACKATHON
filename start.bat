@@ -15,6 +15,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem MongoDB must be running (see README). Set MONGODB_URI if it is not on this computer.
 rem Already running (for example, started with Windows)? Just open it.
 powershell -NoProfile -Command "try { Invoke-WebRequest '%URL%' -UseBasicParsing -TimeoutSec 2 | Out-Null; exit 0 } catch { exit 1 }"
 if not errorlevel 1 (
@@ -25,9 +26,19 @@ if not errorlevel 1 (
 
 if not exist node_modules (
   echo Installing packages, this happens once...
-  call npm install --omit=dev --no-audit --no-fund
+  call npm install --no-audit --no-fund
   if errorlevel 1 (
     echo Could not install the packages. Check the internet connection and run this again.
+    pause
+    exit /b 1
+  )
+)
+
+if not exist apps\frontend\dist\index.html (
+  echo Building the web app, this happens once...
+  call npm run build
+  if errorlevel 1 (
+    echo Could not build the web app.
     pause
     exit /b 1
   )
@@ -39,7 +50,7 @@ if /i not "%~1"=="--background" start "" /b powershell -NoProfile -WindowStyle H
 :run
 echo.
 echo Starting UniSeva Portal. Keep this window open; close it to stop the site.
-node server\index.js
+node apps\backend\src\index.js
 echo.
 echo The site stopped. Restarting in 5 seconds (close this window to stop it for good)...
 ping -n 6 127.0.0.1 >nul

@@ -1,27 +1,27 @@
 {
-  "name": "campus-fix",
-  "version": "1.0.0",
-  "description": "Campus issue management: report, dedupe, prioritise, assign and track campus problems.",
+  "name": "uniseva-portal",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Campus issue management: report, dedupe, prioritise, assign and track campus problems. A MERN monorepo (MongoDB, Express, React, Node).",
   "type": "module",
-  "main": "server/index.js",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "start": "node server/index.js",
-    "seed": "node scripts/seed.js",
-    "backup": "node scripts/backup.js",
-    "restore": "node scripts/restore.js",
-    "test": "node --test test/*.test.js"
+    "dev": "node scripts/dev.js",
+    "build": "npm run build --workspace @uniseva/frontend",
+    "start": "npm run start --workspace @uniseva/backend",
+    "seed": "npm run seed --workspace @uniseva/backend",
+    "backup": "npm run backup --workspace @uniseva/backend",
+    "restore": "npm run restore --workspace @uniseva/backend --",
+    "test": "node --test test/*.test.js && npm run test --workspaces --if-present"
   },
   "engines": {
-    "node": ">=22.13"
+    "node": ">=20"
   },
   "author": "Ujjawal Singh",
   "contributors": [
     "Anirudh Mishra"
   ],
-  "license": "MIT",
-  "dependencies": {
-    "express": "^4.22.3",
-    "multer": "^1.4.4",
-    "qrcode": "^1.5.4"
-  }
+  "license": "MIT"
 }
