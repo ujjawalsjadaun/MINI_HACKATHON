@@ -39,7 +39,7 @@ UniSeva Portal replaces WhatsApp messages and verbal complaints with one place t
 
 ### How priority is computed
 
-`server/priority.js`. Every score comes with its reasons, which are shown in the admin views:
+`apps/backend/src/services/priority.js`. Every score comes with its reasons, which are shown in the admin views:
 
 ```
 category severity (x10)          electrical / water / sanitation highest
@@ -55,20 +55,20 @@ The label is critical (60+), high (45+), medium (25+) or low. The SLA clock paus
 
 ### How duplicate detection works
 
-`server/dedupe.js`. A new report is compared only with **active** issues that have the same **category and location** and do not name a **different room** (so CS-101 and CS-102 never merge). Text is normalised (stop words removed, synonyms mapped, so "broken", "dead" and "not working" count as the same fault) and scored with an overlap coefficient against the issue and every report already merged into it. A score of 0.34 or more merges the report, and the percentage is stored as the explanation. The rule is deliberately simple and explainable rather than a black box, so an admin can always see why two reports were grouped.
+`apps/backend/src/services/dedupe.js`. A new report is compared only with **active** issues that have the same **category and location** and do not name a **different room** (so CS-101 and CS-102 never merge). Text is normalised (stop words removed, synonyms mapped, so "broken", "dead" and "not working" count as the same fault) and scored with an overlap coefficient against the issue and every report already merged into it. A score of 0.34 or more merges the report, and the percentage is stored as the explanation. The rule is deliberately simple and explainable rather than a black box, so an admin can always see why two reports were grouped.
 
 ## Interface and accessibility
 
 - Plain HTML, CSS and JavaScript (no build step) with an institutional look: a navy and gold theme, the host institute's logo and a clear "student project, not an official service" notice on every page.
 - Responsive down to phone width, light and dark themes (the page background is the institute's own campus photo, softened under a translucent overlay, and darkened in dark mode), and a print stylesheet for the QR stickers.
-- Five languages (English, Hindi, Assamese, Bengali, Odia). The English text in the code is the lookup key and falls back to itself, so a missing translation shows English instead of breaking the page. A test fails if any text in the code, the HTML or the server's fixed messages lacks a translation in any of the four languages. Names that are not translated on purpose: building names and issue titles or descriptions (written by users), the institute's official notice titles, and server messages that have a name or number built in. The Hindi, Assamese, Bengali and Odia text was written by an AI assistant and **should be reviewed by native speakers** before real use.
+- Five languages (English, Hindi, Assamese, Bengali, Odia). The English text in the code is the lookup key and falls back to itself, so a missing translation shows English instead of breaking the page. A test fails if any text in the React code or the server's fixed messages lacks a translation in any of the four languages. Names that are not translated on purpose: building names and issue titles or descriptions (written by users), the institute's official notice titles, and server messages that have a name or number built in. The Hindi, Assamese, Bengali and Odia text was written by an AI assistant and **should be reviewed by native speakers** before real use.
 - Keyboard and screen-reader friendly: skip link, labelled form fields, visible focus rings, live regions for results, text alternatives for images and QR codes, and status shown as text as well as colour.
 
 ## Run it
 
-Requires **Node.js 22.13 or newer** (uses the built-in `node:sqlite`). No database server and no API keys are needed.
+UniSeva Portal is a **MERN** app (MongoDB, Express, React, Node) in an npm-workspaces monorepo. You need **Node.js 20 or newer** and a **MongoDB** server (Docker makes this one line: `docker run -d -p 27017:27017 --name uniseva-mongo mongo:7`, or use a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster and set `MONGODB_URI`). No API keys are needed.
 
-**On Windows, just double-click `start.bat`.** It installs the packages the first time, creates the demo accounts and data on the first run, opens the browser at http://localhost:3000, and restarts the site by itself if it ever stops. Keep its window open (minimise it); closing the window stops the site.
+**On Windows, just double-click `start.bat`** (MongoDB must be running). It installs the packages and builds the web app the first time, creates the demo accounts and data on the first run, opens the browser at http://localhost:3000, and restarts the site by itself if it ever stops. Keep its window open (minimise it); closing the window stops the site.
 
 To have the site **start by itself whenever you sign in to Windows**, double-click `autostart-on.bat` once. It puts a shortcut in your Startup folder that runs `start.bat` in a minimised window; `autostart-off.bat` removes it.
 
@@ -76,10 +76,13 @@ Or from a terminal, on any system:
 
 ```bash
 npm install
+npm run build     # builds the React app into apps/frontend/dist
 npm start         # http://localhost:3000  (use PORT=3001 npm start if 3000 is taken)
 ```
 
-The first start fills an empty database with the demo accounts and issues (set `NO_AUTO_SEED=1` to start empty); `npm run seed` does the same by hand. If you pulled a newer version, delete the `data/` folder first, because the schema has changed.
+For development use `npm run dev` instead: it runs the API with auto-restart and the Vite dev server with hot reload; open http://localhost:5173.
+
+The first start fills an empty database with the demo accounts and issues (set `NO_AUTO_SEED=1` to start empty); `npm run seed` does the same by hand. To start over, drop the database (for example `mongosh uniseva --eval "db.dropDatabase()"`).
 
 Demo accounts created by the seed (change the admin with `ADMIN_EMAIL` / `ADMIN_PASSWORD`; the email must end in `@nitap.ac.in`):
 
@@ -91,11 +94,11 @@ Demo accounts created by the seed (change the admin with `ADMIN_EMAIL` / `ADMIN_
 
 Every demo student and staff member has the security question "favourite school teacher" with the answer **`nitap`** (used by Forgot password below). The admin account has none and cannot be reset that way.
 
-Run the tests with `npm test` (unit tests for matching, priority and SLA rules, and API tests covering the report, confirm, staff and admin flows and the role boundaries).
+Run the tests with `npm test`. They need a MongoDB server; each test file uses its own throw-away database on the server named by `MONGODB_URI` (default `mongodb://127.0.0.1:27017`). They cover matching, priority and SLA rules, the API (report, confirm, staff and admin flows, role boundaries), backups, the production start-up rules, and the translations.
 
 The seeded admin password is public in this README. Set your own with `ADMIN_PASSWORD=... npm run seed` before sharing the app with anyone.
 
-Optional environment variables: `PORT` (default 3000), `DB_FILE` (default `data/campusfix.db`).
+Optional environment variables: `PORT` (default 3000), `MONGODB_URI` (default `mongodb://127.0.0.1:27017/uniseva`).
 
 ### Forgot password (security question)
 
@@ -115,7 +118,7 @@ The institute's emergency directory (names and personal mobile numbers of doctor
 
 ```bash
 mkdir private
-cp server/emergency-contacts.example.json private/emergency-contacts.json   # then replace the fake entries
+cp apps/backend/emergency-contacts.example.json private/emergency-contacts.json   # then replace the fake entries
 ```
 
 Each entry has a `role`, a `name`, a list of `phones` and `tags` that decide where it is offered: `emergency` (shown when a report is rated Emergency), `hostel`, `engineering` (building faults), `medical`, `ambulance`, `security`, `police`, `fire`, `night`. Phone numbers are validated before they become `tel:` links, a broken file is ignored with a warning, and the file is re-read on every request, so edits need no restart. Set `EMERGENCY_FILE` to keep it somewhere else. Keep the numbers current: UniSeva Portal only displays them and never places calls or messages.
@@ -134,7 +137,7 @@ The helper is student-only and limited to 20 requests a minute per student. The 
 [DEPLOYMENT.md](DEPLOYMENT.md) is the guide for whoever hosts the site: one command with Docker (`docker compose up -d --build`) gives HTTPS with an automatic certificate, an admin created from `ADMIN_PASSWORD`, daily backups and a health check. In production (`NODE_ENV=production`, which the Docker image sets):
 
 - the first start creates **only the admin** (`ADMIN_EMAIL` / `ADMIN_PASSWORD`, at least 10 characters; the public demo password is refused). Demo data only with `SEED_DEMO=1`;
-- **backups** run daily (database plus photos, the newest 14 kept; `BACKUP_EVERY_HOURS`, `BACKUP_KEEP`, `BACKUP_DIR`). `npm run backup` takes one now and `npm run restore` lists and restores them (stop the site first; the data it replaces is kept);
+- **backups** run daily (every collection as plain JSON-lines files, plus the photos; the newest 14 kept; `BACKUP_EVERY_HOURS`, `BACKUP_KEEP`, `BACKUP_DIR`). `npm run backup` takes one now and `npm run restore` lists and restores them (stop the site first; the data it replaces is kept);
 - requests are logged one line each without query strings or tokens, the API and account creation are rate limited per connection address, the HSTS header is sent, expired sessions and old notifications are cleared, and the site finishes in-flight requests when it is stopped;
 - `GET /api/health` answers `{"ok":true}` for uptime checks and the host's health check. `TRUST_PROXY=1` is needed behind a proxy so each visitor has their own limits.
 
@@ -144,7 +147,7 @@ Every push and pull request runs the test suite on GitHub (`.github/workflows/te
 
 `npm start` prints an `On your network:` address such as `http://192.168.1.20:3000`. Other devices must use that address, never `localhost` (which means their own machine), and must be on the same Wi-Fi. Allow Node.js through the Windows firewall if asked. Some campus or public Wi-Fi blocks device-to-device traffic; a phone hotspot works as a fallback.
 
-On a fresh clone, `start.bat` (or `npm install` then `npm start`) sets everything up, including the demo accounts. The `On your network:` address changes when the computer joins a different Wi-Fi, so print QR stickers from the address shown at the time.
+On a fresh clone, `start.bat` (or `npm install`, `npm run build`, `npm start`) sets everything up, including the demo accounts. The `On your network:` address changes when the computer joins a different Wi-Fi, so print QR stickers from the address shown at the time.
 
 ### Put it online (no computer of yours needs to stay on)
 
@@ -161,7 +164,7 @@ Things to know about the free plan:
 - Its **disk is wiped on every restart**, so the database starts again from the demo data. For data that must survive, use a paid plan and uncomment the `disk` block in `render.yaml` (the database and photos live in `/data`).
 - The demo student and staff accounts keep their published passwords (`student1234`, `staff1234`) so judges can try the app, and the emergency directory is not on the host, so only the public numbers (112, police, fire) show. To add the full directory, upload it as a Render secret file and set `EMERGENCY_FILE` to its path.
 
-Settings the host can use: `PORT`, `DB_FILE`, `UPLOAD_DIR` (where photos are kept), `TRUST_PROXY=1` (needed behind a hosting proxy so each visitor has their own login lock-out), `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first run only, required in production), `SEED_DEMO`, `NO_AUTO_SEED`, `BACKUP_EVERY_HOURS`, `BACKUP_KEEP`, `BACKUP_DIR`, `RATE_LIMIT` (`0` turns the limits off), `LOG_REQUESTS`, `EMERGENCY_FILE`. [`.env.example`](.env.example) lists them with comments. `GET /api/health` answers `{"ok":true}` for the host's health check. Any container host (Fly.io, Railway, a campus server) can run the same `Dockerfile`.
+Settings the host can use: `PORT`, `MONGODB_URI`, `UPLOAD_DIR` (where photos are kept), `TRUST_PROXY=1` (needed behind a hosting proxy so each visitor has their own login lock-out), `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first run only, required in production), `SEED_DEMO`, `NO_AUTO_SEED`, `BACKUP_EVERY_HOURS`, `BACKUP_KEEP`, `BACKUP_DIR`, `RATE_LIMIT` (`0` turns the limits off), `LOG_REQUESTS`, `EMERGENCY_FILE`. [`.env.example`](.env.example) lists them with comments. `GET /api/health` answers `{"ok":true}` for the host's health check. Any container host (Fly.io, Railway, a campus server) can run the same `Dockerfile`.
 
 ### QR tags on a phone
 
@@ -169,7 +172,7 @@ Sign in as admin and open **QR tags**. When you are on `localhost`, the page fil
 
 ## 3-minute demo script
 
-The seed is built for this walk-through (reset with a fresh `data/` folder and `npm run seed` before presenting).
+The seed is built for this walk-through (reset with a fresh database and `npm run seed` before presenting).
 
 1. **Scan to report.** As admin, open **QR tags** and show the **B-II** sticker (scan it with a phone on the same Wi-Fi, or open its link). Sign in as **Chen**: the form opens with B-II already filled in, and lists "Tube light broken near the entrance, reported by 3 people". Tap **Me too, this is mine**. The report count goes to 4 instead of a duplicate being filed.
 2. **Prioritise and assign.** Sign in as **Admin**. The queue is sorted by priority: the sparking-wire water leak and the tube light (now 4 reports, overdue) are **critical**. Open the water leak to show the score breakdown (severity, danger words, past deadline), then assign it to **Suresh** from the named staff list.
@@ -180,23 +183,33 @@ The seed is built for this walk-through (reset with a fresh `data/` folder and `
 ## Architecture
 
 ```
-public/            Vanilla ES-module frontend (no build step)
-  index.html styles.css   page shell, theme, print styles
-  app.js router.js api.js dom.js i18n.js   i18n.js: language switching, lang/ holds the Hindi, Assamese, Bengali and Odia dictionaries
-  assets/          host institute logo (see Credits)
-  views/           auth, security, report, issues (student), admin (admin + staff), insights, qr, shared,
-                   place-picker (area / place / floor), campus-map (schematic SVG map and pins), map (problem map page)
-server/
-  app.js           Express app, security headers, error handling
-  auth.js          scrypt password hashing, sessions, roles, login throttling
-  issues.js        reporting, merging, me-too, nearby issues, confirm/reopen, listing, detail
-  issue-routes.js  HTTP layer, role checks, validated photo upload (multer)
-  admin.js         status and assignment updates with a timeline entry for each change
-  dedupe.js        duplicate matching          priority.js  priority score and SLA
-  insights.js      aggregate queries           db.js        SQLite schema
-  qr.js            QR code rendering           config.js    categories, routing, SLAs, locations
-scripts/seed.js    accounts and demo data (uses the real services)
-test/              unit tests (logic) and API integration tests
+apps/
+  frontend/               React + Vite single-page app (@uniseva/frontend)
+    index.html            page shell
+    public/assets/        host institute logo and photo (see Credits)
+    src/
+      main.jsx            entry: router and providers
+      app/                App (every route and who may open it), Layout, auth and toast providers, pages/
+      components/         feature components: IssueCard, CampusMap, PlacePicker, Timeline, forms and panels
+      components/ui/      small building blocks: Badge, Stars, EmptyState, Segmented, Async
+      hooks/              useAsync, useUnread
+      lib/                api client, i18n (English text is the key), formatting, text helpers
+      i18n/lang/          Hindi, Assamese, Bengali and Odia dictionaries
+      styles/styles.css   theme and print styles
+    i18n.test.js          fails if any text in the app lacks a translation
+  backend/                Express API (@uniseva/backend)
+    src/
+      index.js app.js     start-up (connect, seed, backups, shutdown) and the Express app
+      config/             constants (categories, routing, SLAs, campus map) and environment settings
+      db/                 MongoDB connection and numeric id counters
+      models/             Mongoose models: user, session, issue, report, feedback, notification, status log
+      routes/             HTTP layer: validation, roles, uploads
+      services/           the rules: reporting, dedupe, priority, issue updates, people, insights, backup, seed
+      middleware/ lib/    auth, rate limiting, passwords, errors
+    scripts/              seed, backup, restore
+    test/                 API, logic and operations tests
+scripts/dev.js            runs both apps for development
+test/credit.test.js       keeps the developer credit in place
 ```
 
 Data model: `issues` (one per underlying problem) have many `reports` (one per student per issue), plus a `status_log` that powers the student-visible timeline. Staff are `users` with a role and department, and issues point at their assignee.
@@ -232,17 +245,17 @@ The sign-in page shows facts about the host institute that were copied from [nit
 
 ## Credits
 
-**Developers and designers: Ujjawal Singh and Anirudh Mishra.** UniSeva Portal was designed and built by Ujjawal Singh and Anirudh Mishra during Hackathon Arunachal 2026, using Express, multer, qrcode and Node's built-in `node:sqlite`.
+**Developers and designers: Ujjawal Singh and Anirudh Mishra.** UniSeva Portal was designed and built by Ujjawal Singh and Anirudh Mishra during Hackathon Arunachal 2026, using MongoDB, Express, React, Node, Mongoose, Vite, multer and qrcode.
 
 The code is released under the [MIT License](LICENSE), copyright (c) 2026 Ujjawal Singh and Anirudh Mishra. The license allows reuse, but **every copy must keep that copyright notice**, so removing the developer credit from the project or from any copy of it breaks the license. The credit is also shown in the footer of every page, and an automated test (`test/credit.test.js`) fails if it is removed. Changes to this repository need the owner's approval (`.github/CODEOWNERS`).
 
-The NIT Arunachal Pradesh logo in `public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. UniSeva Portal is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
+The NIT Arunachal Pradesh logo in `apps/frontend/public/assets/nitap-logo.png` is the institute's own, downloaded from [nitap.ac.in](https://www.nitap.ac.in) and shown unmodified. It is the property of the institute and is used only to identify the hackathon's host institution. UniSeva Portal is a student project and is **not** an official service of NIT Arunachal Pradesh; every page says so.
 
-The background photo `public/assets/nitap-campus.jpg` (Academic Block III) is the hero image on the institute's home page, downloaded from [nitap.ac.in](https://www.nitap.ac.in/images/panorama.jpg). It is the institute's property; the only changes are scaling it down to 1920 px wide and compressing it, and it is shown under a translucent overlay. It is credited in the page footer and used only to show the host campus.
+The background photo `apps/frontend/public/assets/nitap-campus.jpg` (Academic Block III) is the hero image on the institute's home page, downloaded from [nitap.ac.in](https://www.nitap.ac.in/images/panorama.jpg). It is the institute's property; the only changes are scaling it down to 1920 px wide and compressing it, and it is shown under a translucent overlay. It is credited in the page footer and used only to show the host campus.
 
 ## Submission details
 
 - **Project:** UniSeva Portal (Campus Issue Management)
 - **Developers and designers:** Ujjawal Singh and Anirudh Mishra
-- **Tech stack:** Node.js, Express, SQLite, vanilla JavaScript
+- **Tech stack:** MongoDB, Express, React (Vite), Node.js
 - **Deployment:** runs on localhost, or online with the included `Dockerfile` / `render.yaml` (see "Put it online")

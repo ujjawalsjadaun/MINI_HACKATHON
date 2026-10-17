@@ -4,7 +4,7 @@ This guide is for the person at the college who will host and look after the sit
 
 ## What you need
 
-- A small always-on computer or cloud server (1 CPU and 1 GB of memory is enough) that you control, with **Docker** installed. A campus virtual machine or a $5 a month cloud server both work.
+- A small always-on computer or cloud server (1 CPU and 1 GB of memory is enough) that you control, with **Docker** installed (the Compose file runs the site and its MongoDB database for you). A campus virtual machine or a $5 a month cloud server both work.
 - A web address for it, for example `issues.nitap.ac.in`, that your IT office points at the server. Phones, laptops and the QR stickers all use this one address.
 - Ports **80 and 443** open to the internet (or to the campus network, if the site is only for the campus).
 - A private password for the first admin account.
@@ -33,7 +33,7 @@ docker compose up -d --build
 
 Within a minute the site is at `https://your-address`. HTTPS is set up automatically (the certificate is obtained and renewed by itself). Sign in as the admin and open **People** to add the staff.
 
-If you cannot use Docker, `npm install` then `NODE_ENV=production npm start` runs the same site, but you must put your own HTTPS proxy in front of it and set `TRUST_PROXY=1`.
+If you cannot use Docker, install Node.js 20+ and MongoDB, set `MONGODB_URI`, then run `npm install`, `npm run build` and `NODE_ENV=production npm start`. You must put your own HTTPS proxy in front of it and set `TRUST_PROXY=1`. A hosted database such as MongoDB Atlas works too: just set `MONGODB_URI` to its address.
 
 ## First day
 
@@ -53,7 +53,7 @@ The site starts with only the admin. There are no demo students or issues. (Sett
 
 ## Backups
 
-The site makes a backup **every day** (database and photos) and keeps the newest 14, in the `data` volume under `backups/`. Change this with `BACKUP_KEEP` and `BACKUP_EVERY_HOURS` in `.env`.
+The site makes a backup **every day** (every collection as a JSON-lines file, plus the photos) and keeps the newest 14, in the `data` volume under `backups/`. The database itself lives in the `mongo` volume. Change this with `BACKUP_KEEP` and `BACKUP_EVERY_HOURS` in `.env`.
 
 A backup on the same disk does not protect against the disk failing, so also copy it elsewhere regularly. For example, a nightly job on the server:
 
@@ -70,7 +70,7 @@ docker compose run --rm app npm run restore -- backup-20261010-020000
 docker compose start app
 ```
 
-A restore keeps the data it replaced next to it (`*.before-restore-<time>`), so it can be undone. To take a backup right now: `docker compose exec app npm run backup`.
+A restore keeps the data it replaced next to the backups (`before-restore-<time>`, and the photos with a `.before-restore-<time>` suffix), so it can be undone. To take a backup right now: `docker compose exec app npm run backup`.
 
 ## Updating to a new version
 
@@ -99,7 +99,7 @@ The site restarts in a few seconds and your data is untouched. Take a backup fir
 
 ## Emergency directory
 
-The full directory (names and personal phone numbers) is deliberately not in the code. Without it the site shows only the public numbers (112, police and fire). To add it, create a file in the format of `server/emergency-contacts.example.json`, put it inside the `data` volume, and set `EMERGENCY_FILE=/data/emergency-contacts.json` in `.env`. It is only ever sent to signed-in users. Keep it out of Git and keep it current.
+The full directory (names and personal phone numbers) is deliberately not in the code. Without it the site shows only the public numbers (112, police and fire). To add it, create a file in the format of `apps/backend/emergency-contacts.example.json`, put it inside the `data` volume, and set `EMERGENCY_FILE=/data/emergency-contacts.json` in `.env`. It is only ever sent to signed-in users. Keep it out of Git and keep it current.
 
 ## Privacy
 
@@ -114,7 +114,7 @@ The site stores names, institute email addresses, hashed passwords, complaint te
 
 ## Limits to be aware of
 
-- One server, one database file: this is built for a campus, not for thousands of requests per second. Restore from backup if the server is lost; there is no automatic failover.
+- One server and one MongoDB instance (no replica set): this is built for a campus, not for thousands of requests per second. Restore from backup if the server is lost; there is no automatic failover.
 - No email: no email notifications and no email-based password reset. Notifications appear in the site (the bell).
 - The map is a drawing, not a survey.
 - The translations (Hindi, Assamese, Bengali, Odia) were written by an AI assistant and should be reviewed by native speakers.

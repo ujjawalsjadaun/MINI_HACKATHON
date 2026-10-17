@@ -1,0 +1,26 @@
+{
+  "name": "@uniseva/backend",
+  "version": "2.0.0",
+  "private": true,
+  "description": "UniSeva Portal API: Express and MongoDB (Mongoose).",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node scripts/seed.js",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.3",
+    "mongoose": "^8.9.0",
+    "multer": "^2.0.2",
+    "qrcode": "^1.5.4"
+  }
+}

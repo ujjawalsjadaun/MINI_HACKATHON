@@ -19,9 +19,9 @@ test('package.json names both developers', () => {
 });
 
 test('every page shows the developer credit in its footer', () => {
-  const html = read('public/index.html');
-  const footer = html.slice(html.indexOf('<footer'), html.indexOf('</footer>'));
-  assert.match(footer, new RegExp(`Designed and developed by</span> <strong>${DEVELOPERS[0]}</strong> <span data-i18n="and">and</span> <strong>${DEVELOPERS[1]}</strong>`));
+  const footer = read('apps/frontend/src/components/Footer.jsx');
+  assert.match(footer, new RegExp(`\\{t\\('Designed and developed by'\\)\\} <strong>${DEVELOPERS[0]}</strong> \\{t\\('and'\\)\\} <strong>${DEVELOPERS[1]}</strong>`));
+  const html = read('apps/frontend/index.html');
   assert.match(html, new RegExp(`<meta name="author" content="${DEVELOPERS.join(', ')}">`));
 });
 

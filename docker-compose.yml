@@ -4,8 +4,19 @@
 #   2. cp .env.example .env   and fill in ADMIN_PASSWORD and SITE_ADDRESS.
 #   3. docker compose up -d --build
 #
-# Everything that must not be lost (the database, photos and backups) is in the "data" volume.
+# Everything that must not be lost is in two volumes: "mongo" (the database) and "data" (photos and backups).
 services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   app:
     build: .
     restart: unless-stopped
@@ -13,6 +24,10 @@ services:
     environment:
       NODE_ENV: production
       TRUST_PROXY: "1"
+      MONGODB_URI: mongodb://mongo:27017/uniseva
+    depends_on:
+      mongo:
+        condition: service_healthy
     volumes:
       - data:/data
     expose:
@@ -34,6 +49,7 @@ services:
       - caddy_config:/config
 
 volumes:
+  mongo:
   data:
   caddy_data:
   caddy_config:
